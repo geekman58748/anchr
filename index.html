@@ -39,7 +39,20 @@
     -webkit-font-smoothing:antialiased;
     overflow-x:hidden;
     padding-top:80px;
+    opacity:0;
+    animation:pageIn 0.6s ease 0.1s forwards;
   }
+  @keyframes pageIn{to{opacity:1;}}
+
+  /* Staggered entrance */
+  .entrance{opacity:0; transform:translateY(20px); transition:opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);}
+  .entrance.in{opacity:1; transform:translateY(0);}
+  .entrance-left{opacity:0; transform:translateX(-30px); transition:opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);}
+  .entrance-left.in{opacity:1; transform:translateX(0);}
+  .entrance-right{opacity:0; transform:translateX(30px); transition:opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1);}
+  .entrance-right.in{opacity:1; transform:translateX(0);}
+  .entrance-scale{opacity:0; transform:scale(0.92); transition:opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1);}
+  .entrance-scale.in{opacity:1; transform:scale(1);}
   h1,h2,h3,.display{
     font-family:'Plus Jakarta Sans', sans-serif;
     letter-spacing:-0.02em;
@@ -437,7 +450,7 @@
 
 <body>
 
-<div class="nav-wrapper">
+<div class="nav-wrapper entrance" id="entrance-nav">
 <header id="navbar">
   <div class="nav-noise"></div>
   <div class="nav-chromatic"></div>
@@ -462,21 +475,21 @@
 </div>
 
 <!-- HERO -->
-<section class="hero reveal-section">
+<section class="hero">
   <div class="wrap hero-grid">
     <div>
-      <h1 class="typewriter-wrap" id="hero-typewriter">
+      <h1 class="typewriter-wrap entrance" id="hero-typewriter" style="transition-delay:0.15s;">
         <span class="tw-line" id="tw-line1"></span><br>
         <span class="tw-line tw-accent" id="tw-line2"></span><span class="tw-cursor">|</span>
       </h1>
-      <p>Anchr encrypts sensitive documents entirely in your browser, generates a 32-byte Merkle root, and anchors it on-chain for immutable timestamping — with crypto-shredding for one-click compliance wipes.</p>
+      <p class="entrance" style="transition-delay:0.35s;">Anchr encrypts sensitive documents entirely in your browser, generates a 32-byte Merkle root, and anchors it on-chain for immutable timestamping — with crypto-shredding for one-click compliance wipes.</p>
       <div class="hero-buttons">
         <a class="btn btn-black" href="vault.html">Seal a Document</a>
         <a class="btn btn-outline" href="vault.html">See How It Works</a>
       </div>
     </div>
 
-    <div class="hero-art">
+    <div class="hero-art entrance-right" style="transition-delay:0.25s;">
       <svg class="dotted-path" viewBox="0 0 480 560">
         <path d="M420 40 C 470 70, 460 110, 420 120" stroke="#0B0B0B" stroke-width="1.2" stroke-dasharray="3 5" fill="none" opacity="0.5"/>
         <circle class="dot" cx="420" cy="40" r="3.5"/>
@@ -486,19 +499,19 @@
         <circle class="dot" cx="150" cy="330" r="3.5"/>
       </svg>
 
-      <div class="card-photo photo-1" style="background:#DAE2D6;">
+      <div class="card-photo photo-1 entrance-left" style="background:#DAE2D6; transition-delay:0.5s;">
         <img src="https://i.pravatar.cc/400?img=13" alt="">
       </div>
-      <div class="card-photo photo-2" style="background:#8a878a;">
+      <div class="card-photo photo-2 entrance-right" style="background:#8a878a; transition-delay:0.6s;">
         <img src="https://i.pravatar.cc/420?img=32" alt="">
       </div>
 
-      <div class="float-card card-justin">
+      <div class="float-card card-justin entrance-left" style="transition-delay:0.7s;">
         <img class="avatar" src="https://i.pravatar.cc/80?img=13" alt="">
         <div><b>Document sealed</b><span class="role">AES-256 encrypted</span><span class="role">Client-side</span></div>
       </div>
 
-      <div class="chip-card chip-contract">
+      <div class="chip-card chip-contract entrance-scale" style="transition-delay:0.8s;">
         NDA — Confidential
         <div class="tags">
           <span class="tiny-pill pill-blue">🔐 Encrypted</span>
@@ -506,7 +519,7 @@
         </div>
       </div>
 
-      <div class="float-card card-karen">
+      <div class="float-card card-karen entrance-right" style="transition-delay:0.75s;">
         <img class="avatar" src="https://i.pravatar.cc/80?img=32" alt="">
         <div><b>Audit log anchored</b><span class="role">On-chain verified</span><span class="role">Immutable</span></div>
       </div>
@@ -817,6 +830,12 @@
   }
   document.getElementById('testi-prev').addEventListener('click', ()=>{ tIdx=(tIdx-1+testis.length)%testis.length; renderTesti(); });
   document.getElementById('testi-next').addEventListener('click', ()=>{ tIdx=(tIdx+1)%testis.length; renderTesti(); });
+
+  // ---- Staggered entrance animations ----
+  (function(){
+    const els = document.querySelectorAll('.entrance, .entrance-left, .entrance-right, .entrance-scale');
+    els.forEach(el => el.classList.add('in'));
+  })();
 
   // ---- Typewriter effect (smooth) ----
   (function(){
