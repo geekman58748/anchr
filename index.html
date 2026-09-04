@@ -38,6 +38,7 @@
     color:var(--ink);
     -webkit-font-smoothing:antialiased;
     overflow-x:hidden;
+    padding-top:80px;
   }
   h1,h2,h3,.display{
     font-family:'Plus Jakarta Sans', sans-serif;
@@ -63,20 +64,45 @@
   .btn-outline:hover{border-color:#b8b2a3;}
   .btn-white{background:#fff; color:var(--ink); border-color:#eee;}
 
-  /* ---------- Header ---------- */
-  header{
-    position:sticky; top:0; z-index:100;
-    background:rgba(247,245,240,0.86);
-    backdrop-filter:blur(10px);
-    border-bottom:1px solid transparent;
+  /* ---------- Floating Pill Nav ---------- */
+  .nav-wrapper{
+    position:fixed; top:20px; left:0; right:0;
+    display:flex; justify-content:center;
+    z-index:100;
+    pointer-events:none;
   }
-  .nav-inner{display:flex; align-items:center; justify-content:space-between; padding:20px 24px;}
-  .logo{display:flex; align-items:center; gap:9px; font-family:'Plus Jakarta Sans'; font-weight:800; font-size:19px;}
-  .logo svg{width:20px; height:20px;}
-  .nav-links{display:flex; align-items:center; gap:30px; font-size:14.5px; font-weight:500; color:var(--ink-soft);}
-  .nav-links .item{display:flex; align-items:center; gap:4px; cursor:pointer; color:var(--ink-soft);}
+  header{
+    pointer-events:auto;
+    display:flex; align-items:center; justify-content:space-between;
+    width:90%; max-width:980px;
+    padding:10px 14px 10px 22px;
+    background:rgba(247,245,240,0.65);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    border:1px solid rgba(0,0,0,0.08);
+    border-radius:100px;
+    box-shadow:0 16px 40px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6);
+    transition:all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow:hidden;
+  }
+  header.shrunk{
+    max-width:180px;
+    padding:6px 6px 6px 14px;
+    background:rgba(247,245,240,0.85);
+    border-color:rgba(0,0,0,0.12);
+    box-shadow:0 20px 48px rgba(0,0,0,0.12);
+  }
+  .nav-inner{display:flex; align-items:center; justify-content:space-between; width:100%;}
+  .logo{display:flex; align-items:center; gap:9px; font-family:'Plus Jakarta Sans'; font-weight:800; font-size:16px; white-space:nowrap; transition:opacity 0.3s ease;}
+  .logo svg{width:20px; height:20px; flex-shrink:0;}
+  header.shrunk .logo span{display:none;}
+  .nav-links{display:flex; align-items:center; gap:28px; font-size:13px; font-weight:500; color:var(--muted-2); list-style:none; transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1); white-space:nowrap;}
+  header.shrunk .nav-links{opacity:0; max-width:0; margin:0; pointer-events:none; overflow:hidden;}
+  .nav-links .item{display:flex; align-items:center; gap:4px; cursor:pointer; color:var(--muted-2); text-decoration:none; transition:color 0.2s;}
+  .nav-links .item:hover{color:var(--ink);}
   .nav-links .item svg{width:9px; height:9px; opacity:.6; margin-top:1px;}
-  .nav-cta{display:flex; align-items:center; gap:12px;}
+  .nav-cta{display:flex; align-items:center; gap:8px;}
+  header.shrunk .btn-outline{display:none;}
   .burger{display:none; background:none; border:none;}
 
   /* ---------- Hero ---------- */
@@ -275,6 +301,9 @@
   /* ---------- Responsive ---------- */
   @media (max-width: 980px){
     .nav-links{display:none;}
+    .nav-wrapper{top:12px;}
+    header{width:92%; padding:8px 10px 8px 16px;}
+    header.shrunk{max-width:140px; padding:5px 5px 5px 12px;}
     .hero-grid{grid-template-columns:1fr;}
     .hero-art{margin-top:40px;}
     .hero h1{font-size:42px;}
@@ -290,8 +319,9 @@
 </head>
 <body>
 
-<header>
-  <div class="wrap nav-inner">
+<div class="nav-wrapper">
+<header id="navbar">
+  <div class="nav-inner">
     <div class="logo">
       <svg viewBox="0 0 24 24" fill="none"><path d="M3 14 L14 3 L14 9 L21 9 L21 14 L14 14 L14 21 Z" fill="#0B0B0B"/></svg>
       Anchr
@@ -308,6 +338,7 @@
     </div>
   </div>
 </header>
+</div>
 
 <!-- HERO -->
 <section class="hero reveal-section">
@@ -706,19 +737,34 @@
     setTimeout(typeLine, 600);
   })();
 
-  // ---- iOS blur scroll reveal ----
+  // ---- iOS blur scroll reveal (both ways) ----
   (function(){
     const sections = document.querySelectorAll('.reveal-section');
     const observer = new IntersectionObserver((entries)=>{
       entries.forEach(entry=>{
         if(entry.isIntersecting){
           entry.target.classList.add('revealed');
+        } else {
+          entry.target.classList.remove('revealed');
         }
       });
     }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
     sections.forEach(s=> observer.observe(s));
     // hero reveals immediately
     document.querySelector('.hero.reveal-section').classList.add('revealed');
+
+    // ---- Floating pill shrink on scroll ----
+    const navbar = document.getElementById('navbar');
+    let lastScroll = 0;
+    window.addEventListener('scroll', ()=>{
+      const y = window.scrollY;
+      if(y > 80){
+        navbar.classList.add('shrunk');
+      } else {
+        navbar.classList.remove('shrunk');
+      }
+      lastScroll = y;
+    }, {passive:true});
   })();
 </script>
 </body>
