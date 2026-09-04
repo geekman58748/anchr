@@ -461,8 +461,8 @@
       <h1 class="typewriter-wrap" id="hero-typewriter">
         <span class="tw-line" id="tw-line1"></span><br>
         <span class="tw-line tw-accent" id="tw-line2"></span><span class="tw-cursor">|</span>
+        <svg class="underline-svg" width="270" height="14" viewBox="0 0 270 14" style="display:block; margin-top:-6px;"><path d="M2 8 C60 14, 210 14, 268 4" stroke="#3C878B" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
       </h1>
-      <svg class="underline-svg" width="270" height="14" viewBox="0 0 270 14"><path d="M2 8 C60 14, 210 14, 268 4" stroke="#3C878B" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
       <p>Anchr encrypts sensitive documents entirely in your browser, generates a 32-byte Merkle root, and anchors it on-chain for immutable timestamping — with crypto-shredding for one-click compliance wipes.</p>
       <div class="hero-buttons">
         <a class="btn btn-black" href="vault.html">Seal a Document</a>
@@ -827,9 +827,9 @@
       if(i <= text1.length){
         line1.textContent = text1.slice(0, i);
         i++;
-        setTimeout(type1, 50 + Math.random() * 30);
+        setTimeout(type1, 28 + Math.random() * 14);
       } else {
-        setTimeout(type2, 400);
+        setTimeout(type2, 200);
       }
     }
 
@@ -837,17 +837,17 @@
       if(j <= text2.length){
         line2.textContent = text2.slice(0, j);
         j++;
-        setTimeout(type2, 50 + Math.random() * 30);
+        setTimeout(type2, 28 + Math.random() * 14);
       } else {
         cursor.classList.remove('active');
         cursor.classList.add('done');
         setTimeout(()=>{
           document.querySelector('.hero-buttons').classList.add('visible');
-        }, 200);
+        }, 150);
       }
     }
 
-    setTimeout(type1, 600);
+    setTimeout(type1, 400);
   })();
 
   // ---- iOS blur scroll reveal (both ways) ----
