@@ -365,7 +365,14 @@
   /* ---------- Typewriter ---------- */
   .typewriter-wrap{display:block;}
   .tw-line{display:inline; font-family:'Plus Jakarta Sans', sans-serif;}
-  .tw-accent{color:var(--teal);}
+  .tw-accent{color:var(--teal); position:relative;}
+  .tw-accent.done::after{
+    content:''; position:absolute; left:0; right:0; bottom:-4px;
+    height:4px; border-radius:4px;
+    background:var(--teal);
+    animation:underlineGrow 0.4s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+  @keyframes underlineGrow{from{transform:scaleX(0); transform-origin:left;} to{transform:scaleX(1); transform-origin:left;}}
   .tw-cursor{
     display:inline-block;
     font-weight:300;
@@ -461,7 +468,6 @@
       <h1 class="typewriter-wrap" id="hero-typewriter">
         <span class="tw-line" id="tw-line1"></span><br>
         <span class="tw-line tw-accent" id="tw-line2"></span><span class="tw-cursor">|</span>
-        <svg class="underline-svg" width="270" height="14" viewBox="0 0 270 14" style="display:block; margin-top:-6px;"><path d="M2 8 C60 14, 210 14, 268 4" stroke="#3C878B" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
       </h1>
       <p>Anchr encrypts sensitive documents entirely in your browser, generates a 32-byte Merkle root, and anchors it on-chain for immutable timestamping — with crypto-shredding for one-click compliance wipes.</p>
       <div class="hero-buttons">
@@ -839,6 +845,7 @@
         j++;
         setTimeout(type2, 28 + Math.random() * 14);
       } else {
+        line2.classList.add('done');
         cursor.classList.remove('active');
         cursor.classList.add('done');
         setTimeout(()=>{
