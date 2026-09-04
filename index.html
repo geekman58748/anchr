@@ -178,8 +178,10 @@
   .nav-links .item{display:flex; align-items:center; gap:4px; cursor:pointer; color:var(--muted-2); text-decoration:none; transition:color 0.2s;}
   .nav-links .item:hover{color:var(--ink);}
   .nav-links .item svg{width:9px; height:9px; opacity:.6; margin-top:1px;}
-  .nav-cta{display:flex; align-items:center; gap:8px;}
+  .nav-cta{display:flex; align-items:center; gap:6px; flex-shrink:0;}
   header.shrunk .btn-outline{display:none;}
+  .nav-cta .btn{padding:7px 16px; font-size:12px; border-radius:100px;}
+  .nav-cta .btn-black{padding:8px 18px; font-size:12px;}
   .burger{display:none; background:none; border:none;}
 
   /* ---------- Hero ---------- */
@@ -437,8 +439,8 @@
       <span class="item">Docs <svg viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4" fill="none"/></svg></span>
     </nav>
     <div class="nav-cta">
-      <a class="btn btn-outline">Access Vault</a>
-      <a class="btn btn-black">Request Demo</a>
+      <a class="btn btn-outline">Vault</a>
+      <a class="btn btn-black">Demo</a>
     </div>
   </div>
 </header>
