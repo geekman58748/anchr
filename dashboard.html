@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anchr — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F7F5F0;
+    --cream-2: #F4F1EA;
+    --cream-3: #EDE9E0;
+    --ink: #0B0B0B;
+    --ink-soft: #1c1c1a;
+    --teal: #3C878B;
+    --teal-deep: #2F6C70;
+    --teal-light: #e8f4f4;
+    --green: #3FE672;
+    --green-soft: #d9f0dc;
+    --muted: #8A8884;
+    --muted-2: #6b6864;
+    --border: #E6E2D9;
+    --border-2: #dcd7cb;
+    --red: #e85d5d;
+    --red-soft: #fde8e8;
+    --purple: #8b7cf6;
+    --purple-soft: #ede8fd;
+    --sidebar-w: 240px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar (shared) ── */
+  .sidebar {
+    width: var(--sidebar-w); background: var(--ink); color: #fff;
+    padding: 24px 0; display: flex; flex-direction: column;
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+  }
+  .sidebar-logo {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 20px 24px; font-family: 'Plus Jakarta Sans'; font-weight: 800; font-size: 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .sidebar-logo svg { width: 22px; height: 22px; }
+  .sidebar-section { padding: 20px 12px 8px; }
+  .sidebar-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: rgba(255,255,255,0.35); padding: 0 8px; margin-bottom: 8px;
+  }
+  .sidebar-nav { list-style: none; }
+  .sidebar-nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px;
+    color: rgba(255,255,255,0.55); font-size: 13.5px; font-weight: 500;
+    text-decoration: none; transition: all 0.15s; margin-bottom: 2px;
+  }
+  .sidebar-nav a:hover { color: #fff; background: rgba(255,255,255,0.06); }
+  .sidebar-nav a.active { color: #fff; background: rgba(255,255,255,0.1); }
+  .sidebar-nav a svg { width: 16px; height: 16px; opacity: 0.6; flex-shrink: 0; }
+  .sidebar-nav a.active svg { opacity: 1; }
+  .sidebar-spacer { flex: 1; }
+  .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 12px; color: rgba(255,255,255,0.3); }
+
+  /* ── Main ── */
+  .main { margin-left: var(--sidebar-w); flex: 1; padding: 32px 40px; min-height: 100vh; }
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+  .page-header h1 { font-family: 'Plus Jakarta Sans'; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+  .page-header p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  /* ── Stats ── */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .stat-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; position: relative; overflow: hidden;
+  }
+  .stat-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0; }
+  .stat-card.green::after { background: var(--green); }
+  .stat-card.teal::after { background: var(--teal); }
+  .stat-card.purple::after { background: var(--purple); }
+  .stat-card.red::after { background: var(--red); }
+  .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .stat-value { font-family: 'Plus Jakarta Sans'; font-size: 28px; font-weight: 800; margin-top: 6px; letter-spacing: -0.02em; }
+  .stat-change { font-size: 11.5px; color: var(--green); margin-top: 4px; font-weight: 600; }
+
+  /* ── Grid layout ── */
+  .dash-grid { display: grid; grid-template-columns: 1fr 380px; gap: 24px; }
+
+  /* ── Audit Log Table ── */
+  .panel {
+    background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+  }
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+  }
+  .panel-header h3 { font-size: 15px; font-weight: 700; }
+  .panel-header .filter-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: #fff; font-size: 12px; font-weight: 500; color: var(--muted-2);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .panel-header .filter-btn:hover { background: var(--cream); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; padding: 12px 20px; font-size: 11px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); border-bottom: 1px solid var(--border); background: var(--cream);
+  }
+  tbody td { padding: 12px 20px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--cream); }
+  .log-action { font-weight: 600; }
+  .log-hash { font-family: 'JetBrains Mono'; font-size: 11px; color: var(--muted-2); }
+  .log-time { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; border-radius: 100px; font-size: 10.5px; font-weight: 600;
+  }
+  .badge-seal { background: var(--green-soft); color: #2f6b3a; }
+  .badge-anchor { background: var(--teal-light); color: var(--teal-deep); }
+  .badge-shred { background: var(--red-soft); color: #a33; }
+  .badge-verify { background: var(--purple-soft); color: #5b4fcf; }
+
+  /* ── Chain of Custody Timeline ── */
+  .timeline { padding: 20px; }
+  .timeline-item {
+    display: flex; gap: 14px; padding-bottom: 20px; position: relative;
+  }
+  .timeline-item:last-child { padding-bottom: 0; }
+  .timeline-item:not(:last-child)::after {
+    content: ''; position: absolute; left: 15px; top: 32px; bottom: 0;
+    width: 2px; background: var(--border);
+  }
+  .timeline-dot {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; position: relative; z-index: 1;
+  }
+  .timeline-dot.seal { background: var(--green-soft); }
+  .timeline-dot.anchor { background: var(--teal-light); }
+  .timeline-dot.shred { background: var(--red-soft); }
+  .timeline-dot.verify { background: var(--purple-soft); }
+  .timeline-content { flex: 1; min-width: 0; }
+  .timeline-title { font-size: 13px; font-weight: 600; }
+  .timeline-desc { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .timeline-time { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: 'JetBrains Mono'; }
+
+  /* ── Compliance Score ── */
+  .score-ring {
+    width: 120px; height: 120px; margin: 20px auto; position: relative;
+  }
+  .score-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .score-ring circle { fill: none; stroke-width: 8; }
+  .score-ring .bg { stroke: var(--cream-3); }
+  .score-ring .fill { stroke: var(--green); stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+  .score-label {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .score-label .num { font-family: 'Plus Jakarta Sans'; font-size: 28px; font-weight: 800; color: var(--teal-deep); }
+  .score-label .txt { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* ── Responsive ── */
+  @media (max-width: 1100px) { .dash-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 24px 16px; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M3 14 L14 3 L14 9 L21 9 L21 14 L14 14 L14 21 Z" fill="#fff"/></svg>
+    Anchr
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Vault</div>
+    <ul class="sidebar-nav">
+      <li><a href="vault.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8M8 12h8"/></svg>
+        Documents
+      </a></li>
+      <li><a href="dashboard.html" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a></li>
+      <li><a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        Audit Trail
+      </a></li>
+    </ul>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Settings</div>
+    <ul class="sidebar-nav">
+      <li><a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        API Keys
+      </a></li>
+      <li><a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Security
+      </a></li>
+    </ul>
+  </div>
+  <div class="sidebar-spacer"></div>
+  <div class="sidebar-footer">Anchr v0.1.0</div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+  <div class="page-header">
+    <div>
+      <h1>Compliance Dashboard</h1>
+      <p>Monitor document integrity, audit logs, and chain of custody.</p>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card green">
+      <div class="stat-label">Documents Sealed</div>
+      <div class="stat-value">2,847</div>
+      <div class="stat-change">+12.3% this week</div>
+    </div>
+    <div class="stat-card teal">
+      <div class="stat-label">Merkle Roots Anchored</div>
+      <div class="stat-value">2,631</div>
+      <div class="stat-change">+8.7% this week</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-label">Verification Checks</div>
+      <div class="stat-value">14,209</div>
+      <div class="stat-change">+23.1% this week</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">Crypto-Shreds</div>
+      <div class="stat-value">12</div>
+      <div class="stat-change" style="color:var(--muted);">GDPR wipes completed</div>
+    </div>
+  </div>
+
+  <!-- Grid: Audit Log + Sidebar -->
+  <div class="dash-grid">
+    <!-- Audit Log -->
+    <div class="panel">
+      <div class="panel-header">
+        <h3>Audit Log</h3>
+        <button class="filter-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+          Filter
+        </button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Action</th>
+            <th>Document</th>
+            <th>Hash</th>
+            <th>Actor</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-seal">Sealed</span></td>
+            <td class="log-action">Series_A_NDA.pdf</td>
+            <td><span class="log-hash">0x7a3f...e91c</span></td>
+            <td>compliance@acme.co</td>
+            <td class="log-time">2 min ago</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-anchor">Anchored</span></td>
+            <td class="log-action">Board_Mins_Q3.pdf</td>
+            <td><span class="log-hash">0x2b8d...4f7a</span></td>
+            <td>system</td>
+            <td class="log-time">18 min ago</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-verify">Verified</span></td>
+            <td class="log-action">Audit_Report_2026.pdf</td>
+            <td><span class="log-hash">0x4f7a...8c1e</span></td>
+            <td>legal@acme.co</td>
+            <td class="log-time">1 hr ago</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-shred">Shredded</span></td>
+            <td class="log-action">Trade_Secret.pdf</td>
+            <td><span class="log-hash">key destroyed</span></td>
+            <td>compliance@acme.co</td>
+            <td class="log-time">3 hrs ago</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-seal">Sealed</span></td>
+            <td class="log-action">IP_Assignment.docx</td>
+            <td><span class="log-hash">0x9e1c...3d2b</span></td>
+            <td>cto@acme.co</td>
+            <td class="log-time">5 hrs ago</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-anchor">Anchored</span></td>
+            <td class="log-action">Due_Diligence.pdf</td>
+            <td><span class="log-hash">0x1d2b...6a9e</span></td>
+            <td>system</td>
+            <td class="log-time">Yesterday</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-verify">Verified</span></td>
+            <td class="log-action">Patent_Filing.docx</td>
+            <td><span class="log-hash">0x8c1e...2b4f</span></td>
+            <td>legal@acme.co</td>
+            <td class="log-time">Yesterday</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-seal">Sealed</span></td>
+            <td class="log-action">Whistleblower_Report.pdf</td>
+            <td><span class="log-hash">0x6a9e...1d2b</span></td>
+            <td>anonymous</td>
+            <td class="log-time">2 days ago</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Right Column -->
+    <div style="display:flex; flex-direction:column; gap:24px;">
+      <!-- Compliance Score -->
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Compliance Score</h3>
+        </div>
+        <div style="padding:20px; text-align:center;">
+          <div class="score-ring">
+            <svg viewBox="0 0 120 120">
+              <circle class="bg" cx="60" cy="60" r="50"/>
+              <circle class="fill" cx="60" cy="60" r="50"
+                stroke-dasharray="314"
+                stroke-dashoffset="28"/>
+            </svg>
+            <div class="score-label">
+              <span class="num">91</span>
+              <span class="txt">Score</span>
+            </div>
+          </div>
+          <p style="font-size:12px; color:var(--muted); margin-top:8px;">Based on seal coverage, anchor status, and shred compliance</p>
+        </div>
+      </div>
+
+      <!-- Chain of Custody -->
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Chain of Custody</h3>
+          <span style="font-size:11px; color:var(--teal); font-weight:600;">Series_A_NDA.pdf</span>
+        </div>
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-dot seal">📎</div>
+            <div class="timeline-content">
+              <div class="timeline-title">Document sealed</div>
+              <div class="timeline-desc">AES-256 encryption applied client-side</div>
+              <div class="timeline-time">Sep 4, 12:01 UTC</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot anchor">⚓</div>
+            <div class="timeline-content">
+              <div class="timeline-title">Merkle root anchored</div>
+              <div class="timeline-desc">0x7a3f8b2c...e91c posted to chain</div>
+              <div class="timeline-time">Sep 4, 12:01 UTC</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot verify">✓</div>
+            <div class="timeline-content">
+              <div class="timeline-title">Integrity verified</div>
+              <div class="timeline-desc">SHA-256 hash matches on-chain record</div>
+              <div class="timeline-time">Sep 4, 12:02 UTC</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot seal">👤</div>
+            <div class="timeline-content">
+              <div class="timeline-title">Accessed by legal@acme.co</div>
+              <div class="timeline-desc">Viewed encrypted document</div>
+              <div class="timeline-time">Sep 4, 14:30 UTC</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

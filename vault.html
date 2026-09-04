@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anchr — Vault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F7F5F0;
+    --cream-2: #F4F1EA;
+    --cream-3: #EDE9E0;
+    --ink: #0B0B0B;
+    --ink-soft: #1c1c1a;
+    --teal: #3C878B;
+    --teal-deep: #2F6C70;
+    --teal-light: #e8f4f4;
+    --green: #3FE672;
+    --green-soft: #d9f0dc;
+    --muted: #8A8884;
+    --muted-2: #6b6864;
+    --border: #E6E2D9;
+    --border-2: #dcd7cb;
+    --red: #e85d5d;
+    --red-soft: #fde8e8;
+    --purple: #8b7cf6;
+    --purple-soft: #ede8fd;
+    --sidebar-w: 240px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--ink);
+    color: #fff;
+    padding: 24px 0;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 50;
+  }
+  .sidebar-logo {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 20px 24px;
+    font-family: 'Plus Jakarta Sans'; font-weight: 800; font-size: 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .sidebar-logo svg { width: 22px; height: 22px; }
+  .sidebar-section { padding: 20px 12px 8px; }
+  .sidebar-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: rgba(255,255,255,0.35);
+    padding: 0 8px; margin-bottom: 8px;
+  }
+  .sidebar-nav { list-style: none; }
+  .sidebar-nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px;
+    color: rgba(255,255,255,0.55); font-size: 13.5px; font-weight: 500;
+    text-decoration: none; transition: all 0.15s;
+    margin-bottom: 2px;
+  }
+  .sidebar-nav a:hover { color: #fff; background: rgba(255,255,255,0.06); }
+  .sidebar-nav a.active { color: #fff; background: rgba(255,255,255,0.1); }
+  .sidebar-nav a svg { width: 16px; height: 16px; opacity: 0.6; flex-shrink: 0; }
+  .sidebar-nav a.active svg { opacity: 1; }
+  .sidebar-spacer { flex: 1; }
+  .sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    font-size: 12px; color: rgba(255,255,255,0.3);
+  }
+
+  /* ── Main ── */
+  .main { margin-left: var(--sidebar-w); flex: 1; padding: 32px 40px; min-height: 100vh; }
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 32px;
+  }
+  .page-header h1 {
+    font-family: 'Plus Jakarta Sans'; font-size: 24px; font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .page-header p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  /* ── Stats Row ── */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .stat-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; position: relative; overflow: hidden;
+  }
+  .stat-card::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    border-radius: 14px 14px 0 0;
+  }
+  .stat-card.green::after { background: var(--green); }
+  .stat-card.teal::after { background: var(--teal); }
+  .stat-card.purple::after { background: var(--purple); }
+  .stat-card.red::after { background: var(--red); }
+  .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .stat-value {
+    font-family: 'Plus Jakarta Sans'; font-size: 28px; font-weight: 800;
+    margin-top: 6px; letter-spacing: -0.02em;
+  }
+  .stat-change { font-size: 11.5px; color: var(--green); margin-top: 4px; font-weight: 600; }
+
+  /* ── Drop Zone ── */
+  .dropzone-wrap { margin-bottom: 32px; }
+  .dropzone {
+    border: 2px dashed var(--border-2); border-radius: 16px;
+    padding: 48px; text-align: center; cursor: pointer;
+    transition: all 0.25s ease; background: #fff;
+    position: relative; overflow: hidden;
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--teal); background: var(--teal-light);
+  }
+  .dropzone.dragover { transform: scale(1.01); }
+  .dropzone-icon {
+    width: 56px; height: 56px; border-radius: 14px;
+    background: var(--cream-2); display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px; font-size: 24px;
+  }
+  .dropzone h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .dropzone p { font-size: 13px; color: var(--muted); }
+  .dropzone .browse { color: var(--teal); font-weight: 600; cursor: pointer; }
+  .dropzone input { display: none; }
+
+  /* ── Encryption Overlay ── */
+  .encrypt-overlay {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(11,11,11,0.7); backdrop-filter: blur(8px);
+    align-items: center; justify-content: center;
+  }
+  .encrypt-overlay.active { display: flex; }
+  .encrypt-card {
+    background: #fff; border-radius: 20px; padding: 48px;
+    text-align: center; width: 400px; max-width: 90vw;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.2);
+  }
+  .encrypt-spinner {
+    width: 64px; height: 64px; border-radius: 50%;
+    border: 3px solid var(--cream-3); border-top-color: var(--teal);
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .encrypt-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .encrypt-card p { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .encrypt-progress { height: 4px; background: var(--cream-3); border-radius: 4px; overflow: hidden; }
+  .encrypt-progress-bar {
+    height: 100%; background: var(--teal); border-radius: 4px;
+    width: 0%; transition: width 0.3s ease;
+  }
+  .encrypt-steps { margin-top: 20px; text-align: left; }
+  .encrypt-step {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12.5px; color: var(--muted); padding: 6px 0;
+    transition: color 0.2s;
+  }
+  .encrypt-step.active { color: var(--ink); font-weight: 600; }
+  .encrypt-step.done { color: var(--teal); }
+  .encrypt-step-dot {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--border-2); display: flex; align-items: center; justify-content: center;
+    font-size: 10px; flex-shrink: 0; transition: all 0.2s;
+  }
+  .encrypt-step.active .encrypt-step-dot { border-color: var(--teal); background: var(--teal-light); }
+  .encrypt-step.done .encrypt-step-dot { border-color: var(--teal); background: var(--teal); color: #fff; }
+
+  /* ── Merkle Result ── */
+  .merkle-result {
+    display: none; margin-top: 16px; padding: 16px;
+    background: var(--cream); border: 1px solid var(--border);
+    border-radius: 12px; text-align: left;
+  }
+  .merkle-result.show { display: block; animation: fadeUp 0.4s ease; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .merkle-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px; }
+  .merkle-hash {
+    font-family: 'JetBrains Mono'; font-size: 13px; color: var(--teal-deep);
+    background: #fff; padding: 8px 12px; border-radius: 8px;
+    border: 1px solid var(--border); word-break: break-all;
+  }
+
+  /* ── File Table ── */
+  .table-section { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .table-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+  }
+  .table-header h3 { font-size: 15px; font-weight: 700; }
+  .table-header .count {
+    font-size: 12px; color: var(--muted); background: var(--cream-2);
+    padding: 3px 10px; border-radius: 100px; font-weight: 600;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; padding: 12px 20px; font-size: 11px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); border-bottom: 1px solid var(--border);
+    background: var(--cream);
+  }
+  tbody td {
+    padding: 14px 20px; font-size: 13.5px; border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--cream); }
+  .file-name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .file-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .file-icon.pdf { background: var(--red-soft); }
+  .file-icon.doc { background: var(--purple-soft); }
+  .file-icon.img { background: var(--teal-light); }
+  .file-hash {
+    font-family: 'JetBrains Mono'; font-size: 11.5px; color: var(--muted-2);
+    max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 600;
+  }
+  .badge-sealed { background: var(--green-soft); color: #2f6b3a; }
+  .badge-anchored { background: var(--teal-light); color: var(--teal-deep); }
+  .badge-shredded { background: var(--red-soft); color: #a33; }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .badge-sealed .badge-dot { background: #3FE672; }
+  .badge-anchored .badge-dot { background: var(--teal); }
+  .badge-shredded .badge-dot { background: var(--red); }
+  .action-btn {
+    padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: #fff; font-size: 11.5px; font-weight: 600; cursor: pointer;
+    transition: all 0.15s; color: var(--ink-soft);
+  }
+  .action-btn:hover { background: var(--cream-2); border-color: var(--border-2); }
+  .action-btn.danger { color: var(--red); border-color: var(--red-soft); }
+  .action-btn.danger:hover { background: var(--red-soft); }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 24px 16px; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M3 14 L14 3 L14 9 L21 9 L21 14 L14 14 L14 21 Z" fill="#fff"/></svg>
+    Anchr
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Vault</div>
+    <ul class="sidebar-nav">
+      <li><a href="vault.html" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8M8 12h8"/></svg>
+        Documents
+      </a></li>
+      <li><a href="dashboard.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a></li>
+      <li><a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        Audit Trail
+      </a></li>
+    </ul>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Settings</div>
+    <ul class="sidebar-nav">
+      <li><a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        API Keys
+      </a></li>
+      <li><a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Security
+      </a></li>
+    </ul>
+  </div>
+  <div class="sidebar-spacer"></div>
+  <div class="sidebar-footer">Anchr v0.1.0</div>
+</aside>
+
+<!-- Main Content -->
+<main class="main">
+  <div class="page-header">
+    <div>
+      <h1>Vault</h1>
+      <p>Seal, verify, and manage your encrypted documents.</p>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card green">
+      <div class="stat-label">Documents Sealed</div>
+      <div class="stat-value">2,847</div>
+      <div class="stat-change">+12.3% this week</div>
+    </div>
+    <div class="stat-card teal">
+      <div class="stat-label">Anchored on-chain</div>
+      <div class="stat-value">2,631</div>
+      <div class="stat-change">+8.7% this week</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-label">Active Keys</div>
+      <div class="stat-value">186</div>
+      <div class="stat-change">+3 new today</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">Crypto-Shredded</div>
+      <div class="stat-value">12</div>
+      <div class="stat-change" style="color:var(--muted);">GDPR wipes</div>
+    </div>
+  </div>
+
+  <!-- Drop Zone -->
+  <div class="dropzone-wrap">
+    <div class="dropzone" id="dropzone">
+      <div class="dropzone-icon">📎</div>
+      <h3>Drop files to seal</h3>
+      <p>or <span class="browse" onclick="document.getElementById('fileInput').click()">browse</span> to upload — PDF, DOCX, images</p>
+      <input type="file" id="fileInput" multiple accept=".pdf,.docx,.doc,.png,.jpg,.jpeg">
+    </div>
+  </div>
+
+  <!-- Merkle Result -->
+  <div class="merkle-result" id="merkleResult">
+    <div class="merkle-label">Merkle Root — Anchored</div>
+    <div class="merkle-hash" id="merkleHash"></div>
+  </div>
+
+  <!-- File Table -->
+  <div class="table-section" style="margin-top: 24px;">
+    <div class="table-header">
+      <h3>Recent Documents</h3>
+      <span class="count" id="fileCount">8 files</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Document</th>
+          <th>Hash</th>
+          <th>Status</th>
+          <th>Sealed</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="fileTableBody"></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Encryption Overlay -->
+<div class="encrypt-overlay" id="encryptOverlay">
+  <div class="encrypt-card">
+    <div class="encrypt-spinner" id="encryptSpinner"></div>
+    <h3 id="encryptTitle">Encrypting document...</h3>
+    <p id="encryptSubtitle">AES-256 client-side encryption in progress</p>
+    <div class="encrypt-progress">
+      <div class="encrypt-progress-bar" id="encryptBar"></div>
+    </div>
+    <div class="encrypt-steps">
+      <div class="encrypt-step" id="step1">
+        <div class="encrypt-step-dot">1</div>
+        <span>Read file in browser</span>
+      </div>
+      <div class="encrypt-step" id="step2">
+        <div class="encrypt-step-dot">2</div>
+        <span>AES-256 encrypt plaintext</span>
+      </div>
+      <div class="encrypt-step" id="step3">
+        <div class="encrypt-step-dot">3</div>
+        <span>Generate SHA-256 hash</span>
+      </div>
+      <div class="encrypt-step" id="step4">
+        <div class="encrypt-step-dot">4</div>
+        <span>Compute Merkle root</span>
+      </div>
+      <div class="encrypt-step" id="step5">
+        <div class="encrypt-step-dot">5</div>
+        <span>Anchor on-chain</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Mock file data ──
+  const files = [
+    { name: 'Series_A_NDA.pdf', type: 'pdf', hash: '0x7a3f...e91c', status: 'sealed', date: 'Sep 4, 2026' },
+    { name: 'Board_Mins_Q3.pdf', type: 'pdf', hash: '0x2b8d...4f7a', status: 'anchored', date: 'Sep 3, 2026' },
+    { name: 'IP_Assignment.docx', type: 'doc', hash: '0x9e1c...3d2b', status: 'sealed', date: 'Sep 2, 2026' },
+    { name: 'Audit_Report_2026.pdf', type: 'pdf', hash: '0x4f7a...8c1e', status: 'anchored', date: 'Sep 1, 2026' },
+    { name: 'Due_Diligence.pdf', type: 'pdf', hash: '0x1d2b...6a9e', status: 'sealed', date: 'Aug 30, 2026' },
+    { name: 'Trade_Secret.pdf', type: 'pdf', hash: '—', status: 'shredded', date: 'Aug 28, 2026' },
+    { name: 'Patent_Filing.docx', type: 'doc', hash: '0x8c1e...2b4f', status: 'anchored', date: 'Aug 27, 2026' },
+    { name: 'Whistleblower_Report.pdf', type: 'pdf', hash: '0x6a9e...1d2b', status: 'sealed', date: 'Aug 25, 2026' },
+  ];
+
+  const iconEmoji = { pdf: '📄', doc: '📝', img: '🖼' };
+  const badgeClass = { sealed: 'badge-sealed', anchored: 'badge-anchored', shredded: 'badge-shredded' };
+  const badgeLabel = { sealed: 'Sealed', anchored: 'Anchored', shredded: 'Shredded' };
+
+  function renderFiles() {
+    const tbody = document.getElementById('fileTableBody');
+    tbody.innerHTML = files.map(f => `
+      <tr>
+        <td>
+          <div class="file-name">
+            <div class="file-icon ${f.type}">${iconEmoji[f.type]}</div>
+            ${f.name}
+          </div>
+        </td>
+        <td><span class="file-hash">${f.hash}</span></td>
+        <td><span class="badge ${badgeClass[f.status]}"><span class="badge-dot"></span>${badgeLabel[f.status]}</span></td>
+        <td style="color:var(--muted); font-size:13px;">${f.date}</td>
+        <td>
+          ${f.status !== 'shredded' ?
+            `<button class="action-btn danger" onclick="shredFile('${f.name}')">Shred</button>` :
+            `<button class="action-btn" disabled style="opacity:0.4">Destroyed</button>`
+          }
+        </td>
+      </tr>
+    `).join('');
+    document.getElementById('fileCount').textContent = files.length + ' files';
+  }
+  renderFiles();
+
+  // ── Dropzone ──
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => { dropzone.classList.remove('dragover'); });
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault(); dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) encryptFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length) encryptFiles(e.target.files);
+  });
+
+  // ── Encryption flow ──
+  function encryptFiles(fileList) {
+    const overlay = document.getElementById('encryptOverlay');
+    const bar = document.getElementById('encryptBar');
+    overlay.classList.add('active');
+    bar.style.width = '0%';
+
+    const steps = ['step1','step2','step3','step4','step5'];
+    let step = 0;
+
+    function advanceStep() {
+      if (step > 0) {
+        document.getElementById(steps[step-1]).classList.remove('active');
+        document.getElementById(steps[step-1]).classList.add('done');
+        document.getElementById(steps[step-1]).querySelector('.encrypt-step-dot').textContent = '✓';
+      }
+      if (step < steps.length) {
+        document.getElementById(steps[step]).classList.add('active');
+        bar.style.width = ((step + 1) / steps.length * 100) + '%';
+        step++;
+        setTimeout(advanceStep, 600 + Math.random() * 400);
+      } else {
+        // Done
+        document.getElementById('encryptSpinner').style.display = 'none';
+        document.getElementById('encryptTitle').textContent = 'Document sealed';
+        document.getElementById('encryptSubtitle').textContent = 'Merkle root anchored on-chain';
+        bar.style.width = '100%';
+
+        // Generate mock hash
+        const hash = '0x' + Array.from({length:64}, () => '0123456789abcdef'[Math.floor(Math.random()*16)]).join('');
+        document.getElementById('merkleHash').textContent = hash;
+        document.getElementById('merkleResult').classList.add('show');
+
+        // Add to file list
+        const file = fileList[0];
+        const ext = file.name.split('.').pop().toLowerCase();
+        const type = ext === 'pdf' ? 'pdf' : ['doc','docx'].includes(ext) ? 'doc' : 'img';
+        files.unshift({
+          name: file.name, type, hash: hash.slice(0,6) + '...' + hash.slice(-4),
+          status: 'sealed', date: 'Just now'
+        });
+        renderFiles();
+
+        setTimeout(() => {
+          overlay.classList.remove('active');
+          // Reset overlay
+          document.getElementById('encryptSpinner').style.display = '';
+          document.getElementById('encryptTitle').textContent = 'Encrypting document...';
+          document.getElementById('encryptSubtitle').textContent = 'AES-256 client-side encryption in progress';
+          steps.forEach(s => {
+            document.getElementById(s).classList.remove('active', 'done');
+            document.getElementById(s).querySelector('.encrypt-step-dot').textContent =
+              document.getElementById(s).querySelector('.encrypt-step-dot').textContent === '✓' ?
+              document.getElementById(steps.indexOf(s)) + 1 : document.getElementById(steps.indexOf(s)) + 1;
+          });
+          document.querySelectorAll('.encrypt-step-dot').forEach((d, i) => d.textContent = i + 1);
+        }, 1800);
+      }
+    }
+    setTimeout(advanceStep, 300);
+  }
+
+  // ── Shred ──
+  function shredFile(name) {
+    if (!confirm(`Crypto-shred "${name}"? The decryption key will be permanently destroyed.`)) return;
+    const f = files.find(x => x.name === name);
+    if (f) { f.status = 'shredded'; f.hash = '—'; renderFiles(); }
+  }
+</script>
+</body>
+</html>
