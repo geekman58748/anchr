@@ -363,13 +363,21 @@
   .badges .badge b{font-size:12.5px;}
 
   /* ---------- Typewriter ---------- */
-  .typewriter-wrap{display:inline;}
-  .typewriter-line{display:block; overflow:hidden; white-space:nowrap; border-right:3px solid var(--ink); width:0; opacity:0;}
-  .typewriter-line.typing{opacity:1; animation:typeWidth 0.8s steps(20,end) forwards, blinkCursor 0.7s step-end infinite;}
-  .typewriter-line.done{opacity:1; width:auto; border-right-color:transparent;}
-  .typewriter-line.done.no-cursor{border-right:none;}
-  @keyframes typeWidth{from{width:0} to{width:100%}}
-  @keyframes blinkCursor{50%{border-right-color:transparent}}
+  .typewriter-wrap{display:block;}
+  .tw-line{display:inline; font-family:'Plus Jakarta Sans', sans-serif;}
+  .tw-accent{color:var(--teal);}
+  .tw-cursor{
+    display:inline-block;
+    font-weight:300;
+    color:var(--teal);
+    animation:blink 0.8s step-end infinite;
+    margin-left:2px;
+    opacity:0;
+    transition:opacity 0.2s;
+  }
+  .tw-cursor.active{opacity:1;}
+  .tw-cursor.done{opacity:0;}
+  @keyframes blink{50%{opacity:0}}
   .hero-buttons{opacity:0; transform:translateY(12px); transition:opacity .6s ease, transform .6s ease;}
   .hero-buttons.visible{opacity:1; transform:translateY(0);}
 
@@ -451,8 +459,8 @@
   <div class="wrap hero-grid">
     <div>
       <h1 class="typewriter-wrap" id="hero-typewriter">
-        <span class="typewriter-line" data-text="Documents sealed."></span>
-        <span class="typewriter-line" data-text="Compliance "><span class="accent">proven.</span></span>
+        <span class="tw-line" id="tw-line1"></span><br>
+        <span class="tw-line tw-accent" id="tw-line2"></span><span class="tw-cursor">|</span>
       </h1>
       <svg class="underline-svg" width="270" height="14" viewBox="0 0 270 14"><path d="M2 8 C60 14, 210 14, 268 4" stroke="#3C878B" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
       <p>Anchr encrypts sensitive documents entirely in your browser, generates a 32-byte Merkle root, and anchors it on-chain for immutable timestamping — with crypto-shredding for one-click compliance wipes.</p>
@@ -805,42 +813,42 @@
   document.getElementById('testi-prev').addEventListener('click', ()=>{ tIdx=(tIdx-1+testis.length)%testis.length; renderTesti(); });
   document.getElementById('testi-next').addEventListener('click', ()=>{ tIdx=(tIdx+1)%testis.length; renderTesti(); });
 
-  // ---- Typewriter effect ----
+  // ---- Typewriter effect (smooth) ----
   (function(){
-    const lines = document.querySelectorAll('#hero-typewriter .typewriter-line');
-    let lineIdx = 0;
-    function typeLine(){
-      if(lineIdx >= lines.length) return;
-      const line = lines[lineIdx];
-      const fullText = line.getAttribute('data-text');
-      const accentSpan = line.querySelector('.accent');
-      const accentText = accentSpan ? accentSpan.textContent : '';
-      line.textContent = '';
-      line.classList.add('typing');
-      let charIdx = 0;
-      const speed = 45;
-      const interval = setInterval(()=>{
-        if(charIdx < fullText.length){
-          line.textContent += fullText[charIdx];
-          charIdx++;
-        } else {
-          clearInterval(interval);
-          line.classList.remove('typing');
-          line.classList.add('done');
-          if(accentSpan){
-            line.innerHTML = fullText.replace(accentText, `<span class=\"accent\">${accentText}</span>`);
-            line.classList.add('done');
-          }
-          lineIdx++;
-          if(lineIdx < lines.length){
-            setTimeout(typeLine, 300);
-          } else {
-            document.querySelector('.hero-buttons').classList.add('visible');
-          }
-        }
-      }, speed);
+    const cursor = document.querySelector('.tw-cursor');
+    const line1 = document.getElementById('tw-line1');
+    const line2 = document.getElementById('tw-line2');
+    cursor.classList.add('active');
+
+    const text1 = 'Documents sealed.';
+    const text2 = 'Compliance proven.';
+    let i = 0, j = 0;
+
+    function type1(){
+      if(i <= text1.length){
+        line1.textContent = text1.slice(0, i);
+        i++;
+        setTimeout(type1, 50 + Math.random() * 30);
+      } else {
+        setTimeout(type2, 400);
+      }
     }
-    setTimeout(typeLine, 600);
+
+    function type2(){
+      if(j <= text2.length){
+        line2.textContent = text2.slice(0, j);
+        j++;
+        setTimeout(type2, 50 + Math.random() * 30);
+      } else {
+        cursor.classList.remove('active');
+        cursor.classList.add('done');
+        setTimeout(()=>{
+          document.querySelector('.hero-buttons').classList.add('visible');
+        }, 200);
+      }
+    }
+
+    setTimeout(type1, 600);
   })();
 
   // ---- iOS blur scroll reveal (both ways) ----
