@@ -82,13 +82,13 @@ async function merkleRootHex(data) {
 
 /* ---------- IndexedDB ---------- */
 const DB_NAME = 'anchr-vault';
-const DB_INIT_VERSION = 1;
-let _dbVersion = DB_INIT_VERSION; // tracks live version after upgrades
 
-function openDB(version) {
-  const v = version || _dbVersion;
+/* Open at current version (no upgrade). Pass forceVersion to trigger upgrade. */
+function openDB(forceVersion) {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, v);
+    const req = forceVersion
+      ? indexedDB.open(DB_NAME, forceVersion)
+      : indexedDB.open(DB_NAME); // no version = opens at whatever the DB is at
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains('docs')) {
@@ -98,10 +98,7 @@ function openDB(version) {
         db.createObjectStore('keys', { keyPath: 'docId' });
       }
     };
-    req.onsuccess = () => {
-      _dbVersion = req.result.version;
-      resolve(req.result);
-    };
+    req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
 }
@@ -110,16 +107,15 @@ function ensureBlobsStore(db) {
   return new Promise((resolve) => {
     if (db.objectStoreNames.contains('blobs')) {
       db.close();
-      return resolve(db);
+      return resolve();
     }
     const version = db.version + 1;
-    _dbVersion = version;
     db.close();
     const req = indexedDB.open(DB_NAME, version);
     req.onupgradeneeded = () => {
       req.result.createObjectStore('blobs', { keyPath: 'id' });
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => { req.result.close(); resolve(); };
   });
 }
 function dbPut(store, value) {
@@ -179,8 +175,9 @@ async function anchrSeal(file, onStage) {
   stage('store', 80);
   const rawKey = await exportKeyRaw(key);
   await dbPut('keys', { docId: id, key: rawKey.buffer }); // ArrayBuffer stores cleanly
+  // Ensure blobs store exists (may bump DB version)
   let db = await openDB();
-  db = await ensureBlobsStore(db);
+  await ensureBlobsStore(db);
   const record = {
     id,
     name: file.name,
@@ -195,7 +192,6 @@ async function anchrSeal(file, onStage) {
   };
   await dbPut('docs', record);
   await dbPut('blobs', { id, data: packed.buffer });
-  db.close();
   stage('done', 100);
 
   return record;
