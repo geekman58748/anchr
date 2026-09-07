@@ -253,48 +253,95 @@ function prefixedRoot(hex) {
   return hex.startsWith('0x') ? hex : '0x' + hex;
 }
 
-/* Attempt real on-chain anchoring via MetaMask + ethers.js.
- * Returns { tx, seq, timestamp, mock }.
- * Falls back to mock mode if wallet is unavailable. */
+const SEPOLIA_RPC = 'https://ethereum-sepolia-rpc.publicnode.com';
+
+/* Detect if an address has EIP-7702 delegation (code != 0x). */
+async function hasEIP7702Delegation(provider, address) {
+  const code = await provider.getCode(address);
+  return code && code !== '0x';
+}
+
+/* Build the anchor() calldata manually. */
+function encodeAnchorCalldata(root) {
+  // anchor(bytes32) selector = keccak256('anchor(bytes32)')[:4] = 0xeecdf927
+  const selector = '0xeecdf927';
+  const paddedRoot = root.startsWith('0x') ? root.slice(2).padStart(64, '0') : root.padStart(64, '0');
+  return selector + paddedRoot;
+}
+
+/* Attempt real on-chain anchoring.
+ * Strategy:
+ *  1. Try direct RPC signing (bypasses MetaMask EIP-7702)
+ *  2. Fall back to MetaMask if no PK available
+ *  3. Fall back to mock if all else fails
+ */
 async function anchrAnchor(record) {
   const root = prefixedRoot(record.rootHex);
+  const calldata = encodeAnchorCalldata(root);
 
-  // Check if MetaMask + ethers.js are available
+  // Try direct signing via stored private key (bypasses EIP-7702)
+  const storedPK = sessionStorage.getItem('anchr-pk');
+  if (storedPK && typeof ethers !== 'undefined') {
+    try {
+      const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC);
+      const wallet = new ethers.Wallet(storedPK, provider);
+      const tx = await wallet.sendTransaction({
+        to: ANCHOR_ADDRESS,
+        data: calldata,
+        chainId: SEPOLIA_CHAIN_ID,
+      });
+      const receipt = await tx.wait();
+      record.anchored = true;
+      record.anchorTx = receipt.hash;
+      record.anchorChain = 'sepolia';
+      record.anchorBlock = Number(receipt.blockNumber);
+      record.anchorTime = Date.now();
+      record.anchorFrom = wallet.address;
+      await dbPut('docs', record);
+      return { tx: receipt.hash, chain: 'sepolia', block: Number(receipt.blockNumber), mock: false };
+    } catch (err) {
+      console.warn('Direct signing failed:', err.message);
+    }
+  }
+
+  // Try MetaMask (may hit EIP-7702 delegation)
   if (typeof window.ethereum !== 'undefined' && typeof ethers !== 'undefined') {
     try {
-      // Request accounts
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
+      const addr = accounts[0];
 
-      // Check chain — prompt to switch to Sepolia if needed
-      const network = await provider.getNetwork();
-      if (network.chainId !== BigInt(SEPOLIA_CHAIN_ID)) {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x' + SEPOLIA_CHAIN_ID.toString(16) }]
-        });
+      // Detect EIP-7702 — warn user and offer direct signing
+      if (await hasEIP7702Delegation(provider, addr)) {
+        const pk = prompt(
+          'Your wallet has EIP-7702 delegation active, which routes transactions through a proxy.\n\n' +
+          'To anchor directly to our contract, enter your Sepolia private key (stored in session only, never sent to any server):'
+        );
+        if (pk) {
+          sessionStorage.setItem('anchr-pk', pk.trim());
+          return anchrAnchor(record); // retry with direct signing
+        }
+        throw new Error('Cannot anchor with EIP-7702 delegation — private key required');
       }
 
-      // Use the AnchrAnchorRegistry contract
       const contract = new ethers.Contract(ANCHOR_ADDRESS, ANCHOR_ABI, signer);
       const tx = await contract.anchor(root);
       const receipt = await tx.wait();
       record.anchored = true;
       record.anchorTx = receipt.hash;
       record.anchorChain = 'sepolia';
-      record.anchorBlock = receipt.blockNumber;
+      record.anchorBlock = Number(receipt.blockNumber);
       record.anchorTime = Date.now();
-      record.anchorFrom = accounts[0];
+      record.anchorFrom = addr;
       await dbPut('docs', record);
-      return { tx: receipt.hash, chain: 'sepolia', block: receipt.blockNumber, mock: false };
+      return { tx: receipt.hash, chain: 'sepolia', block: Number(receipt.blockNumber), mock: false };
     } catch (err) {
-      // Wallet rejected or error — fall through to mock
-      console.warn('On-chain anchor failed, using mock:', err.message);
+      console.warn('MetaMask anchor failed:', err.message);
     }
   }
 
-  // Mock mode — generate a realistic-looking Sepolia tx hash
+  // Mock fallback
   const mockHash = '0x' + Array.from({length: 64}, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');
   const mockBlock = 5000000 + Math.floor(Math.random() * 100000);
   record.anchored = true;
