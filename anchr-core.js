@@ -82,11 +82,13 @@ async function merkleRootHex(data) {
 
 /* ---------- IndexedDB ---------- */
 const DB_NAME = 'anchr-vault';
-const DB_VERSION = 1;
+const DB_INIT_VERSION = 1;
+let _dbVersion = DB_INIT_VERSION; // tracks live version after upgrades
 
-function openDB() {
+function openDB(version) {
+  const v = version || _dbVersion;
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    const req = indexedDB.open(DB_NAME, v);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains('docs')) {
@@ -96,15 +98,22 @@ function openDB() {
         db.createObjectStore('keys', { keyPath: 'docId' });
       }
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      _dbVersion = req.result.version;
+      resolve(req.result);
+    };
     req.onerror = () => reject(req.error);
   });
 }
 /* ensure the blobs store exists even if the DB was created by an older build */
 function ensureBlobsStore(db) {
   return new Promise((resolve) => {
-    if (db.objectStoreNames.contains('blobs')) return resolve();
+    if (db.objectStoreNames.contains('blobs')) {
+      db.close();
+      return resolve(db);
+    }
     const version = db.version + 1;
+    _dbVersion = version;
     db.close();
     const req = indexedDB.open(DB_NAME, version);
     req.onupgradeneeded = () => {
