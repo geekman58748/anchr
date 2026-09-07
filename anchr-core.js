@@ -233,13 +233,14 @@ async function anchrList() {
 
 // ABI for our AnchorRegistry contract (simplified — stores merkle roots)
 const ANCHOR_ABI = [
-  'function anchor(bytes32 root) returns (uint256 indexed seq, uint256 timestamp)',
-  'function roots(bytes32) view returns (uint256 seq, uint256 timestamp, address sender)',
+  'function anchor(bytes32 root) returns (uint256 seq)',
+  'function verify(bytes32 root) view returns (bool exists, tuple(bytes32 root, address sender, uint256 timestamp, uint256 seq) anchor_)',
+  'function count() view returns (uint256)',
   'function rootCount() view returns (uint256)'
 ];
 
-// Sepolia testnet — replace with your deployed contract address
-const ANCHOR_ADDRESS = '0x' + '0'.repeat(40); // placeholder
+// Sepolia testnet
+const ANCHOR_ADDRESS = '0xaeEFEA4E261f82b686c9caeeeE9a9a7738D25db6';
 const SEPOLIA_CHAIN_ID = 11155111;
 
 // Hex-prefix the root for display
@@ -263,29 +264,16 @@ async function anchrAnchor(record) {
 
       // Check chain — prompt to switch to Sepolia if needed
       const network = await provider.getNetwork();
-
-      // If we have a real contract address, use it
-      if (ANCHOR_ADDRESS !== '0x' + '0'.repeat(40)) {
-        const contract = new ethers.Contract(ANCHOR_ADDRESS, ANCHOR_ABI, signer);
-        const tx = await contract.anchor(root);
-        const receipt = await tx.wait();
-        record.anchored = true;
-        record.anchorTx = receipt.hash;
-        record.anchorChain = 'sepolia';
-        record.anchorBlock = receipt.blockNumber;
-        record.anchorTime = Date.now();
-        record.anchorFrom = accounts[0];
-        await dbPut('docs', record);
-        return { tx: receipt.hash, chain: 'sepolia', block: receipt.blockNumber, mock: false };
+      if (network.chainId !== BigInt(SEPOLIA_CHAIN_ID)) {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x' + SEPOLIA_CHAIN_ID.toString(16) }]
+        });
       }
 
-      // No contract deployed yet — use raw transaction as proof-of-existence
-      // This still proves the root existed at this block on Sepolia
-      const tx = await signer.sendTransaction({
-        to: accounts[0], // self-transfer (minimal gas)
-        value: 0,
-        data: root // embed root in calldata
-      });
+      // Use the AnchrAnchorRegistry contract
+      const contract = new ethers.Contract(ANCHOR_ADDRESS, ANCHOR_ABI, signer);
+      const tx = await contract.anchor(root);
       const receipt = await tx.wait();
       record.anchored = true;
       record.anchorTx = receipt.hash;
