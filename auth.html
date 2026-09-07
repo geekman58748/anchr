@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anchr — Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F7F5F0; --cream-2: #F4F1EA; --cream-3: #EDE9E0;
+    --ink: #0B0B0B; --ink-soft: #1c1c1a;
+    --teal: #3C878B; --teal-deep: #2F6C70; --teal-light: #e8f4f4;
+    --muted: #8A8884; --muted-2: #6b6864;
+    --border: #E6E2D9; --border-2: #dcd7cb;
+    --red: #e85d5d; --red-soft: #fde8e8;
+    --green: #3FE672; --green-soft: #d9f0dc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif; background: var(--cream); color: var(--ink);
+    -webkit-font-smoothing: antialiased; min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .auth-container {
+    width: 420px; max-width: 92vw;
+    animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .auth-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 16px;
+    padding: 40px 36px; box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+  }
+
+  .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+  .logo-mark {
+    width: 36px; height: 36px; background: var(--teal); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-mark svg { width: 18px; height: 18px; }
+  .logo-text { font-family: 'Plus Jakarta Sans'; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
+
+  h1 {
+    font-family: 'Plus Jakarta Sans'; font-size: 20px; font-weight: 700;
+    letter-spacing: -0.02em; margin-bottom: 6px;
+  }
+  .subtitle { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 11px; font-weight: 600; color: var(--muted-2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .form-group input {
+    width: 100%; padding: 10px 14px; font-family: 'Inter'; font-size: 13px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--cream);
+    color: var(--ink); outline: none; transition: border-color 0.15s;
+  }
+  .form-group input:focus { border-color: var(--teal); }
+
+  .btn-primary {
+    width: 100%; padding: 11px 0; font-family: 'Inter'; font-size: 13px;
+    font-weight: 600; border: none; border-radius: 8px; cursor: pointer;
+    transition: all 0.15s; margin-top: 8px;
+  }
+  .btn-primary.register { background: var(--teal); color: #fff; }
+  .btn-primary.register:hover { background: var(--teal-deep); }
+  .btn-primary.login { background: var(--ink); color: #fff; }
+  .btn-primary.login:hover { background: #222; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .divider span { font-size: 11px; color: var(--muted); font-weight: 500; }
+
+  .btn-secondary {
+    width: 100%; padding: 10px 0; font-family: 'Inter'; font-size: 12.5px;
+    font-weight: 600; border: 1px solid var(--border); border-radius: 8px;
+    background: #fff; color: var(--ink-soft); cursor: pointer; transition: all 0.15s;
+  }
+  .btn-secondary:hover { background: var(--cream); border-color: var(--border-2); }
+
+  .status-bar {
+    margin-top: 16px; padding: 10px 14px; border-radius: 8px;
+    font-size: 12px; display: none; line-height: 1.5;
+  }
+  .status-bar.error { display: block; background: var(--red-soft); color: #a33; }
+  .status-bar.success { display: block; background: var(--green-soft); color: #2f6b3a; }
+  .status-bar.info { display: block; background: var(--teal-light); color: var(--teal-deep); }
+
+  .passkey-note {
+    margin-top: 20px; padding: 14px; background: var(--cream-2); border-radius: 10px;
+    font-size: 11.5px; color: var(--muted-2); line-height: 1.6;
+  }
+  .passkey-note strong { color: var(--ink-soft); font-weight: 600; }
+  .passkey-note svg { vertical-align: -2px; margin-right: 4px; }
+
+  .skip-link {
+    display: block; text-align: center; margin-top: 16px;
+    font-size: 12px; color: var(--muted); text-decoration: none;
+  }
+  .skip-link:hover { color: var(--teal); }
+
+  .footer-note {
+    text-align: center; margin-top: 20px; font-size: 11px; color: var(--muted);
+  }
+  .footer-note a { color: var(--teal); text-decoration: none; }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .loading { animation: pulse 1.2s ease infinite; }
+</style>
+</head>
+<body>
+
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" stroke="#fff" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div class="logo-text">anchr</div>
+    </div>
+
+    <div id="registerView">
+      <h1>Create your vault</h1>
+      <p class="subtitle">Your passkey is the only key. No passwords. No servers. Your device proves you're you.</p>
+
+      <div class="form-group">
+        <label>Display name</label>
+        <input type="text" id="regName" placeholder="e.g. compliance@lawfirm.com" autocomplete="username webauthn">
+      </div>
+
+      <button class="btn-primary register" id="regBtn" onclick="doRegister()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="vertical-align:-2px;margin-right:4px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Create passkey
+      </button>
+
+      <div class="divider"><span>or</span></div>
+      <button class="btn-secondary" onclick="showLogin()">Sign in with existing passkey</button>
+
+      <div class="status-bar" id="regStatus"></div>
+
+      <div class="passkey-note">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <strong>How it works:</strong> Your device generates a cryptographic key pair. The private key never leaves this device. Anchr stores a commitment hash — we never see your key.
+      </div>
+    </div>
+
+    <div id="loginView" style="display:none;">
+      <h1>Welcome back</h1>
+      <p class="subtitle">Touch your passkey to unlock the vault.</p>
+
+      <button class="btn-primary login" id="loginBtn" onclick="doLogin()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        Unlock with passkey
+      </button>
+
+      <div class="divider"><span>or</span></div>
+      <button class="btn-secondary" onclick="showRegister()">Create a new passkey</button>
+
+      <div class="status-bar" id="loginStatus"></div>
+
+      <div class="passkey-note">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <strong>Zero-knowledge:</strong> Anchr cannot identify you. Your passkey proves ownership without revealing identity. The vault is sealed with AES-256 — even we can't read your files.
+      </div>
+    </div>
+  </div>
+
+  <a class="skip-link" href="vault.html">Continue without passkey →</a>
+  <p class="footer-note">Seal. Prove. Shred. — <a href="index.html">anchr</a></p>
+</div>
+
+<script src="anchr-core.js"></script>
+<script>
+  function setStatus(id, msg, type) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = 'status-bar ' + type;
+  }
+
+  function showLogin() {
+    document.getElementById('registerView').style.display = 'none';
+    document.getElementById('loginView').style.display = '';
+  }
+  function showRegister() {
+    document.getElementById('loginView').style.display = 'none';
+    document.getElementById('registerView').style.display = '';
+  }
+
+  async function doRegister() {
+    const name = document.getElementById('regName').value.trim() || 'anchr-user';
+    const btn = document.getElementById('regBtn');
+    btn.disabled = true;
+    setStatus('regStatus', 'Waiting for biometric…', 'info');
+
+    try {
+      await anchrPasskeyRegister(name);
+      setStatus('regStatus', 'Passkey created! Redirecting to vault…', 'success');
+      sessionStorage.setItem('anchr-authed', 'true');
+      sessionStorage.setItem('anchr-user', name);
+      setTimeout(() => { window.location.href = 'vault.html'; }, 1200);
+    } catch (err) {
+      const msg = err.name === 'NotAllowedError'
+        ? 'Biometric cancelled. Try again.'
+        : 'Passkey creation failed: ' + err.message;
+      setStatus('regStatus', msg, 'error');
+      btn.disabled = false;
+    }
+  }
+
+  async function doLogin() {
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    setStatus('loginStatus', 'Waiting for biometric…', 'info');
+
+    try {
+      const result = await anchrPasskeyAuth();
+      setStatus('loginStatus', 'Authenticated! Redirecting to vault…', 'success');
+      sessionStorage.setItem('anchr-authed', 'true');
+      sessionStorage.setItem('anchr-user', 'passkey-user');
+      setTimeout(() => { window.location.href = 'vault.html'; }, 1200);
+    } catch (err) {
+      const msg = err.name === 'NotAllowedError'
+        ? 'Biometric cancelled. Try again.'
+        : 'Authentication failed: ' + err.message;
+      setStatus('loginStatus', msg, 'error');
+      btn.disabled = false;
+    }
+  }
+
+  // Auto-detect: show login if passkeys exist, register if not
+  (async function() {
+    try {
+      const has = await anchrHasPasskey();
+      if (has) showLogin();
+    } catch {}
+  })();
+</script>
+</body>
+</html>

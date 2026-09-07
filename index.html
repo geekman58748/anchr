@@ -4,9 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anchr — Zero-Knowledge Legal Vault</title>
+<meta name="description" content="Anchr encrypts legal documents entirely in your browser, anchors a Merkle root on-chain, and crypto-shreds for instant GDPR erasure. Seal. Prove. Shred.">
+<meta property="og:title" content="Anchr — Zero-Knowledge Legal Vault">
+<meta property="og:description" content="Client-side AES-256 encryption. On-chain Merkle timestamps. One-click crypto-shredding.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%233C878B'/%3E%3Cpath d='M6 14 L14 6 L14 10.5 L18 10.5 L18 14 L14 14 L14 18 Z' fill='white'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --cream:#F7F5F0;
@@ -91,7 +96,7 @@
     width:90%; max-width:980px;
     padding:10px 14px 10px 22px;
     border-radius:100px;
-    transition:all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    transition:max-width 0.6s cubic-bezier(0.16,1,0.3,1), padding 0.6s cubic-bezier(0.16,1,0.3,1);
     overflow:visible;
   }
 
@@ -108,7 +113,7 @@
       inset 0 1px 0 rgba(255,255,255,0.8),
       inset 0 -1px 0 rgba(255,255,255,0.3);
     z-index:-1;
-    transition:all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    transition:background 0.6s cubic-bezier(0.16,1,0.3,1), border-color 0.6s cubic-bezier(0.16,1,0.3,1), box-shadow 0.6s cubic-bezier(0.16,1,0.3,1), backdrop-filter 0.6s cubic-bezier(0.16,1,0.3,1);
   }
 
   /* Specular highlight - moves with scroll */
@@ -186,7 +191,7 @@
   .logo{display:flex; align-items:center; gap:9px; font-family:'Plus Jakarta Sans'; font-weight:800; font-size:16px; white-space:nowrap; transition:opacity 0.3s ease;}
   .logo svg{width:20px; height:20px; flex-shrink:0;}
   header.shrunk .logo span{display:none;}
-  .nav-links{display:flex; align-items:center; gap:28px; font-size:13px; font-weight:500; color:var(--muted-2); list-style:none; transition:all 0.4s cubic-bezier(0.16, 1, 0.3, 1); white-space:nowrap;}
+  .nav-links{display:flex; align-items:center; gap:28px; font-size:13px; font-weight:500; color:var(--muted-2); list-style:none; transition:opacity 0.4s cubic-bezier(0.16,1,0.3,1), max-width 0.4s cubic-bezier(0.16,1,0.3,1); white-space:nowrap;}
   header.shrunk .nav-links{opacity:0; max-width:0; margin:0; pointer-events:none; overflow:hidden;}
   .nav-links .item{display:flex; align-items:center; gap:4px; cursor:pointer; color:var(--muted-2); text-decoration:none; transition:color 0.2s;}
   .nav-links .item:hover{color:var(--ink);}
@@ -206,40 +211,75 @@
   .hero p{margin-top:22px; font-size:16.5px; line-height:1.6; color:#4b4946; max-width:440px;}
   .hero-buttons{margin-top:30px; display:flex; gap:14px;}
 
-  .hero-art{position:relative; height:560px;}
-  .dotted-path{position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none;}
-  .card-photo{
-    position:absolute; border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-card);
+  /* ---------- Hero: Seal Console (live) ---------- */
+  .hero-art{position:relative;}
+  .console{
+    position:relative; background:#fff; border:1px solid var(--border);
+    border-radius:20px; padding:22px 22px 18px; box-shadow:var(--shadow-card);
+    transition:transform .25s cubic-bezier(0.16,1,0.3,1), box-shadow .25s cubic-bezier(0.16,1,0.3,1);
   }
-  .card-photo img{width:100%; height:100%; object-fit:cover; filter:grayscale(1) contrast(1.05);}
-  .photo-1{width:225px; height:320px; top:10px; left:10px; background:#DAE2D6;}
-  .photo-2{width:255px; height:280px; top:255px; right:15px; background:#8a878a;}
-
-  .float-card{
-    position:absolute; background:#fff; border-radius:14px; padding:10px 14px; display:flex; gap:10px; align-items:center;
-    box-shadow:var(--shadow-card); font-size:13px;
+  .console:hover{transform:translateY(-3px); box-shadow:0 28px 55px -18px rgba(20,20,15,0.22);}
+  .console-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .status-pill{display:inline-flex; align-items:center; gap:7px; border-radius:100px; padding:6px 13px; font-size:11px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase;}
+  .status-pill .led{width:7px; height:7px; border-radius:50%; background:currentColor; animation:ledPulse 1.6s ease infinite;}
+  @keyframes ledPulse{50%{opacity:0.3;}}
+  .status-ready{background:var(--cream-3); color:var(--muted-2);}
+  .status-sealed{background:var(--teal-light); color:var(--teal-deep);}
+  .status-shredded{background:#f6e3e0; color:#a04437;}
+  .replay-btn{width:32px; height:32px; border-radius:50%; border:1px solid var(--border-2); background:#fff; display:flex; align-items:center; justify-content:center; transition:background .2s ease;}
+  .replay-btn:hover{background:var(--cream-2);}
+  .replay-btn svg{width:13px; height:13px;}
+  .console-file{font-family:'Plus Jakarta Sans', sans-serif; font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px; margin-top:2px;}
+  .console-file svg{width:15px; height:15px; flex-shrink:0;}
+  .console-sub{font-size:11.5px; color:var(--muted); margin-top:3px; font-weight:500;}
+  .console-input{
+    margin-top:12px; width:100%; border:1px solid var(--border-2); border-radius:12px;
+    background:var(--cream); padding:11px 14px; font-family:'JetBrains Mono', monospace;
+    font-size:12px; line-height:1.5; color:var(--ink); resize:none; display:block;
+    transition:border-color .2s ease, box-shadow .2s ease;
   }
-  .float-card .avatar{width:34px; height:34px; border-radius:8px; object-fit:cover; filter:grayscale(1);}
-  .float-card b{display:block; font-size:13.5px; font-weight:700;}
-  .float-card .role{color:var(--muted); font-size:11.5px;}
-  .card-justin{top:36px; right:0; width:200px;}
-  .card-karen{bottom:78px; left:0; width:210px;}
-
-  .chip-card{position:absolute; background:#fff; border-radius:12px; padding:8px 12px; box-shadow:var(--shadow-card); font-size:12px; font-weight:600;}
-  .chip-contract{top:200px; left:180px;}
-  .chip-contract .tags{display:flex; gap:6px; margin-top:6px;}
-  .tiny-pill{border-radius:100px; padding:3px 9px; font-size:10.5px; font-weight:700; display:inline-flex; align-items:center; gap:3px;}
-  .pill-blue{background:var(--pill-blue-bg); color:var(--pill-blue-fg);}
-  .pill-red{background:var(--pill-red-bg); color:var(--pill-red-fg);}
-
-  .worklog-card{position:absolute; bottom:15px; right:0; width:150px; background:#0B0B0B; border-radius:14px; padding:12px; box-shadow:var(--shadow-card);}
-  .worklog-card .top{display:flex; align-items:center; gap:6px; color:#fff; font-size:11px; font-weight:600;}
-  .worklog-card .bar{margin-top:10px; height:10px; border-radius:4px; background:#c9b8f2;}
-  .toast{position:absolute; bottom:60px; right:-4px; width:190px; background:#fff; border-radius:12px; padding:10px 12px 12px; box-shadow:var(--shadow-card); font-size:11.5px; color:#4b4946; line-height:1.4;}
-  .toast .x{position:absolute; top:8px; right:10px; color:#bbb; font-size:12px;}
-  .chatbubble{position:absolute; bottom:-6px; right:0; width:46px; height:46px; border-radius:50%; background:var(--teal-deep); display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-card);}
-  .chatbubble svg{width:20px; height:20px; fill:#fff;}
-  .dot{fill:var(--ink); opacity:.75;}
+  .console-input:focus{outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(60,135,139,0.14);}
+  .leaves{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:12px;}
+  .leaf{
+    background:var(--cream-2); border:1px solid var(--border); border-radius:9px; padding:8px 9px;
+    font-family:'JetBrains Mono', monospace; font-size:9.5px; color:var(--muted);
+    overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    transition:border-color .3s ease, color .3s ease, background .3s ease;
+  }
+  .leaf.lit{border-color:var(--teal); color:var(--teal-deep); background:var(--teal-light);}
+  .root-label{display:flex; justify-content:space-between; align-items:baseline; margin-top:16px; font-size:10px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--muted);}
+  .root-label .bytes{letter-spacing:0; text-transform:none; font-weight:500; font-family:'JetBrains Mono', monospace;}
+  .root-hash{
+    margin-top:6px; font-family:'JetBrains Mono', monospace; font-size:12.5px; font-weight:500;
+    color:var(--ink); word-break:break-all; line-height:1.55; min-height:40px;
+    transition:color .3s ease;
+  }
+  .root-hash.shredded{color:#b3544a; text-decoration:line-through; text-decoration-thickness:1.5px;}
+  .steps{display:flex; gap:6px; margin-top:14px;}
+  .step{flex:1; display:flex; flex-direction:column; gap:6px;}
+  .step .bar{height:3px; width:100%; border-radius:2px; background:var(--border); position:relative; overflow:hidden;}
+  .step .bar::after{content:''; position:absolute; inset:0; background:var(--teal); transform:scaleX(0); transform-origin:left; transition:transform .45s cubic-bezier(0.16,1,0.3,1);}
+  .step.active .bar::after, .step.done .bar::after{transform:scaleX(1);}
+  .step .name{font-size:9.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); transition:color .3s ease;}
+  .step.active .name, .step.done .name{color:var(--teal-deep);}
+  .console-foot{display:flex; justify-content:space-between; align-items:center; margin-top:14px; font-size:10px; color:var(--muted); font-family:'JetBrains Mono', monospace;}
+  .float-chip{
+    position:absolute; background:#fff; border-radius:12px; padding:9px 13px; box-shadow:var(--shadow-card);
+    display:flex; align-items:center; gap:9px;
+    transition:opacity .4s ease, transform .4s ease;
+  }
+  .float-chip .ic{width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .float-chip .ic svg{width:15px; height:15px;}
+  .float-chip b{display:block; font-size:12px; font-weight:700; line-height:1.3;}
+  .float-chip .role{color:var(--muted); font-size:10px; font-family:'JetBrains Mono', monospace; white-space:nowrap;}
+  .chip-lock{top:46px; left:-16px;}
+  .chip-lock .ic{background:var(--cream-3);}
+  .chip-anchor{top:-16px; right:-8px; opacity:0; transform:translateY(8px);}
+  .chip-anchor.show{opacity:1; transform:translateY(0);}
+  .chip-anchor .ic{background:var(--teal-light);}
+  .chip-shred{bottom:-14px; left:-10px; opacity:0; transform:translateY(8px);}
+  .chip-shred.show{opacity:1; transform:translateY(0);}
+  .chip-shred .ic{background:#f6e3e0;}
 
   /* ---------- Logo marquee ---------- */
   .logos-strip{padding:36px 0 70px; overflow:hidden;}
@@ -259,7 +299,7 @@
 
   /* ---------- Professionals ---------- */
   .tabs{display:flex; gap:10px; margin-top:34px; flex-wrap:wrap;}
-  .tab{padding:10px 20px; border-radius:100px; border:1px solid var(--border-2); font-size:14px; font-weight:600; background:transparent; color:var(--ink-soft); transition:all .2s ease;}
+  .tab{padding:10px 20px; border-radius:100px; border:1px solid var(--border-2); font-size:14px; font-weight:600; background:transparent; color:var(--ink-soft); transition:background .2s ease, color .2s ease, border-color .2s ease;}
   .tab.active{background:var(--ink); color:#fff; border-color:var(--ink);}
 
   .pro-card{
@@ -405,6 +445,27 @@
   .reveal-section{filter:blur(12px); opacity:0; transform:translateY(30px) scale(0.98); transition:filter 0.8s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.8s cubic-bezier(0.25,0.46,0.45,0.94), transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94); will-change:filter, opacity, transform;}
   .reveal-section.revealed{filter:blur(0px); opacity:1; transform:translateY(0) scale(1);}
 
+  /* ---------- Craft: focus, reduced motion, misc ---------- */
+  :focus-visible{outline:2px solid var(--teal-deep); outline-offset:2px;}
+  .btn:focus-visible, .tab:focus-visible, .arrow-btn:focus-visible, .replay-btn:focus-visible{outline-offset:3px;}
+  .testi-mono{display:flex; align-items:center; justify-content:center; background:var(--teal-light); border:1px solid #d4e8e8;}
+  .testi-mono span{font-family:'Plus Jakarta Sans', sans-serif; font-weight:800; font-size:56px; color:var(--teal-deep); letter-spacing:-0.02em;}
+  .doc-ic{width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .doc-ic svg{width:20px; height:20px;}
+  .loc svg{width:10px; height:10px; flex-shrink:0;}
+  .pro-scene{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:36px;}
+  .pro-scene svg{width:100%; max-width:400px; height:auto;}
+  .back-top{background:none; border:none; font-family:inherit;}
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important;}
+    html{scroll-behavior:auto;}
+    body{opacity:1; animation:none;}
+    .entrance, .entrance-left, .entrance-right, .entrance-scale{opacity:1; transform:none;}
+    .reveal-section{filter:none; opacity:1; transform:none;}
+    .marquee-track, .anim-left, .anim-right{animation:none;}
+    .hero-buttons{opacity:1; transform:none;}
+  }
+
   /* ---------- Responsive ---------- */
   @media (max-width: 980px){
     .nav-links{display:none;}
@@ -421,6 +482,10 @@
     .testi-card{grid-template-columns:1fr;}
     .testi-photo{max-width:180px;}
     .foot-cols{grid-template-columns:1fr 1fr;}
+    .leaves{grid-template-columns:repeat(2,1fr);}
+    .chip-lock{display:none;}
+    .chip-anchor{right:0;}
+    .chip-shred{left:0;}
   }
 </style>
 </head>
@@ -461,10 +526,10 @@
       Anchr
     </div>
     <nav class="nav-links">
-      <span class="item">Vault <svg viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4" fill="none"/></svg></span>
-      <span class="item">Compliance <svg viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4" fill="none"/></svg></span>
-      <span class="item">How It Works</span>
-      <span class="item">Docs <svg viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4" fill="none"/></svg></span>
+      <a class="item" href="vault.html">Vault</a>
+      <a class="item" href="#how">How It Works</a>
+      <a class="item" href="#why">Compliance</a>
+      <a class="item" href="#audit">Audit Trail <svg viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4" fill="none"/></svg></a>
     </nav>
     <div class="nav-cta">
       <a class="btn btn-outline" href="vault.html">Vault</a>
@@ -485,51 +550,51 @@
       <p class="entrance" style="transition-delay:0.35s;">Anchr encrypts sensitive documents entirely in your browser, generates a 32-byte Merkle root, and anchors it on-chain for immutable timestamping — with crypto-shredding for one-click compliance wipes.</p>
       <div class="hero-buttons">
         <a class="btn btn-black" href="vault.html">Seal a Document</a>
-        <a class="btn btn-outline" href="vault.html">See How It Works</a>
+        <a class="btn btn-outline" href="#how">See How It Works</a>
       </div>
     </div>
 
     <div class="hero-art entrance-right" style="transition-delay:0.25s;">
-      <svg class="dotted-path" viewBox="0 0 480 560">
-        <path d="M420 40 C 470 70, 460 110, 420 120" stroke="#0B0B0B" stroke-width="1.2" stroke-dasharray="3 5" fill="none" opacity="0.5"/>
-        <circle class="dot" cx="420" cy="40" r="3.5"/>
-        <path d="M40 380 C -10 420, 30 470, 90 480" stroke="#0B0B0B" stroke-width="1.2" stroke-dasharray="3 5" fill="none" opacity="0.5"/>
-        <circle class="dot" cx="90" cy="480" r="3.5"/>
-        <path d="M175 245 C 140 270, 130 300, 150 330" stroke="#0B0B0B" stroke-width="1.2" stroke-dasharray="3 5" fill="none" opacity="0.4"/>
-        <circle class="dot" cx="150" cy="330" r="3.5"/>
-      </svg>
-
-      <div class="card-photo photo-1 entrance-left" style="background:#DAE2D6; transition-delay:0.5s;">
-        <img src="https://i.pravatar.cc/400?img=13" alt="">
-      </div>
-      <div class="card-photo photo-2 entrance-right" style="background:#8a878a; transition-delay:0.6s;">
-        <img src="https://i.pravatar.cc/420?img=32" alt="">
-      </div>
-
-      <div class="float-card card-justin entrance-left" style="transition-delay:0.7s;">
-        <img class="avatar" src="https://i.pravatar.cc/80?img=13" alt="">
-        <div><b>Document sealed</b><span class="role">AES-256 encrypted</span><span class="role">Client-side</span></div>
-      </div>
-
-      <div class="chip-card chip-contract entrance-scale" style="transition-delay:0.8s;">
-        NDA — Confidential
-        <div class="tags">
-          <span class="tiny-pill pill-blue">🔐 Encrypted</span>
-          <span class="tiny-pill pill-red">📄 PDF</span>
+      <div class="console" id="seal-console">
+        <div class="console-top">
+          <span class="status-pill status-ready" id="console-status"><span class="led"></span>Ready to seal</span>
+          <button class="replay-btn" id="replay-btn" aria-label="Replay sealing demo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#0B0B0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          </button>
+        </div>
+        <div class="console-file">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0B0B0B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          <span id="doc-name">acme-nda-final.pdf</span>
+        </div>
+        <div class="console-sub" id="doc-sub">0.8 MB · AES-256 · zero-knowledge</div>
+        <textarea class="console-input" id="console-input" rows="3" spellcheck="false" placeholder="Type anything — it becomes a Merkle root. Try it.">Master Services Agreement — Acme &amp; Northwind — Confidential</textarea>
+        <div class="leaves" id="leaves"></div>
+        <div class="root-label"><span>Merkle Root</span><span class="bytes">SHA-256 · 32 bytes</span></div>
+        <div class="root-hash" id="root-hash" aria-live="polite">—</div>
+        <div class="steps" id="steps">
+          <div class="step" data-step="0"><div class="bar"></div><div class="name">Hash</div></div>
+          <div class="step" data-step="1"><div class="bar"></div><div class="name">Merkle</div></div>
+          <div class="step" data-step="2"><div class="bar"></div><div class="name">Anchor</div></div>
+          <div class="step" data-step="3"><div class="bar"></div><div class="name">Sealed</div></div>
+        </div>
+        <div class="console-foot">
+          <span id="console-footnote">Client-side · Web Crypto API</span>
+          <span id="console-clock">—</span>
         </div>
       </div>
 
-      <div class="float-card card-karen entrance-right" style="transition-delay:0.75s;">
-        <img class="avatar" src="https://i.pravatar.cc/80?img=32" alt="">
-        <div><b>Audit log anchored</b><span class="role">On-chain verified</span><span class="role">Immutable</span></div>
+      <div class="float-chip chip-lock">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#2F6C70" stroke-width="2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+        <div><b>AES-256 encrypted</b><span class="role">client-side, never uploaded</span></div>
       </div>
-
-      <div class="worklog-card">
-        <div class="top">📋 Merkle Root Generated</div>
-        <div class="bar"></div>
+      <div class="float-chip chip-anchor" id="chip-anchor">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#2F6C70" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><circle cx="12" cy="5" r="3"/></svg></div>
+        <div><b>Anchored on-chain</b><span class="role">block #8,442,016</span></div>
       </div>
-      <div class="toast"><span class="x">✕</span>Chain-of-custody verified ✅</div>
-      <div class="chatbubble"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H8l-4 4z"/></svg></div>
+      <div class="float-chip chip-shred" id="chip-shred">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#a04437" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></div>
+        <div><b>Crypto-shredded</b><span class="role">key destroyed · irrecoverable</span></div>
+      </div>
     </div>
   </div>
 </section>
@@ -540,7 +605,7 @@
 </div>
 
 <!-- HOW IT WORKS -->
-<section id="professionals" class="reveal-section">
+<section id="how" class="reveal-section">
   <div class="wrap">
     <div class="section-head">
       <h2>How It <span class="accent">Works</span></h2>
@@ -550,7 +615,7 @@
     <div class="pro-card">
       <div class="pro-text">
         <h3 id="pro-title">Attorneys</h3>
-        <p id="pro-desc">Leverage our network of BigLaw caliber talent to scale your legal function and drive your business needs. Whether you're looking to make your next hire or fill overflow needs, our lawyers are well positioned to provide action-oriented expertise across a wide range of practice areas.</p>
+        <p id="pro-desc">Encrypt PDFs, NDAs, and audit logs entirely in the browser. Your files never leave your machine unencrypted — AES-256 client-side encryption ensures zero-knowledge confidentiality.</p>
         <div class="pro-tags" id="pro-tags"></div>
         <div class="pro-nav">
           <button class="arrow-btn" id="pro-prev"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" stroke="#0B0B0B" stroke-width="2" fill="none"/></svg></button>
@@ -560,7 +625,9 @@
       </div>
       <div class="pro-media">
         <svg class="pro-dots" viewBox="0 0 500 400"><path d="M470 20 C 500 60, 480 100, 440 100" stroke="#0B0B0B" stroke-width="1.2" stroke-dasharray="3 5" fill="none" opacity=".35"/><circle cx="470" cy="20" r="3.2" fill="#0B0B0B" opacity=".6"/></svg>
-        <img id="pro-img" src="https://i.pravatar.cc/600?img=13" alt="">
+        <div class="pro-scene">
+          <svg id="pro-img" viewBox="0 0 400 300" fill="none" role="img" aria-label="Diagram illustrating the current step"></svg>
+        </div>
       </div>
     </div>
   </div>
@@ -625,7 +692,7 @@
 </section>
 
 <!-- NETWORK -->
-<section class="network reveal-section">
+<section id="audit" class="network reveal-section">
   <div class="wrap">
     <div class="section-head center">
       <h2>The <span class="accent">Audit Trail</span></h2>
@@ -643,12 +710,12 @@
   <div class="wrap">
     <div class="testi-wrap">
       <div class="testi-card">
-        <div class="testi-photo"><img src="https://i.pravatar.cc/300?img=51" alt=""></div>
+        <div class="testi-photo testi-mono"><span id="testi-mono">AC</span></div>
         <div class="testi-body">
           <q id="testi-quote">We needed a way to timestamp sensitive NDAs without putting them on-chain. Anchr's zero-knowledge approach gave us immutable proof without the exposure.</q>
           <div class="testi-foot">
             <div class="testi-source">
-              <strong style="font-family:'Plus Jakarta Sans'; font-weight:800; color:#0B0B0B;">↻ Anchr</strong>
+              <strong style="font-family:'Plus Jakarta Sans'; font-weight:800; color:#0B0B0B;">Anchr</strong>
               <span id="testi-name">BRANDON LINE, RECHARGE</span>
             </div>
             <div class="testi-arrows">
@@ -690,8 +757,9 @@
         <svg viewBox="0 0 24 24" fill="none"><path d="M3 14 L14 3 L14 9 L21 9 L21 14 L14 14 L14 21 Z" fill="#fff"/></svg>
         Anchr
       </div>
-      <div class="back-top">↑ <span>Top</span></div>
-    </div>      <div class="foot-cols">
+      <button class="back-top" id="back-top" aria-label="Back to top">↑ <span>Top</span></button>
+    </div>
+    <div class="foot-cols">
       <div class="foot-col">
         <h5>Vault</h5>
         <a>How It Works</a><a>Seal Documents</a>
@@ -705,6 +773,7 @@
       <div class="foot-col">
         <h5>Resources</h5>
         <a>Documentation</a><a>API Reference</a><a>Changelog</a><a>Status</a>
+      </div>
       <div class="foot-col">
         <h5>Don't miss a thing</h5>
         <p style="font-size:13px; color:#a7a49f; margin-bottom:14px;">Sign up for our newsletter.</p>
@@ -720,8 +789,8 @@
     <div class="foot-bottom">
       <div class="links"><span>Privacy</span><span>Terms</span></div>
       <div class="badges">
-        <div class="badge"> Download on the<b>App Store</b></div>
-        <div class="badge"> GET IT ON<b>Google Play</b></div>
+        <div class="badge"><b>Zero-Knowledge</b>Client-side encryption</div>
+        <div class="badge"><b>GDPR</b>Crypto-erasure ready</div>
       </div>
       <span>© Anchr 2026</span>
     </div>
@@ -739,49 +808,82 @@
   document.getElementById('trustedgrid').innerHTML = trustedLogos.map(t=>`<span class="wordmark">${t}</span>`).join('');
 
   // ---- Network members ----
+  const fileIc = `<svg viewBox="0 0 24 24" fill="none" stroke="#2F6C70" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>`;
+  const pinIc = `<svg viewBox="0 0 24 24" fill="none" stroke="#8A8884" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
   const members = [
-    {n:"Sealed NDA", r:"Zero-Knowledge", l:"Client-side", img:13},
-    {n:"Audit Log", r:"Merkle-Verified", l:"On-chain", img:47},
-    {n:"SOC 2 Report", r:"Compliance", l:"Anchored", img:32},
-    {n:"Board Minutes", r:"Encrypted", l:"AES-256", img:44},
-    {n:"IP Assignment", r:"Sealed", l:"Immutable", img:29},
-    {n:"Due Diligence", r:"Chain-of-Custody", l:"Verified", img:15},
-    {n:"Evidence File", r:"Timestamped", l:"Blockchain", img:52},
-    {n:"Trade Secret", r:"Shredded", l:"Irrecoverable", img:8},
-    {n:"Compliance Wipe", r:"GDPR Ready", l:"Crypto-Shred", img:11},
-    {n:"Merger Docs", r:"Anchored", l:"Tamper-Proof", img:53},
-    {n:"Patent Filing", r:"Sealed", l:"On-chain", img:26},
-    {n:"Whistleblower", r:"Protected", l:"Zero-Knowledge", img:35},
-    {n:"Contract Addendum", r:"Verified", l:"Merkle Root", img:12},
-    {n:"Regulatory Filing", r:"Compliant", l:"Anchored", img:36},
+    {n:"Sealed NDA", r:"Zero-Knowledge", l:"Client-side"},
+    {n:"Audit Log", r:"Merkle-Verified", l:"On-chain"},
+    {n:"SOC 2 Report", r:"Compliance", l:"Anchored"},
+    {n:"Board Minutes", r:"Encrypted", l:"AES-256"},
+    {n:"IP Assignment", r:"Sealed", l:"Immutable"},
+    {n:"Due Diligence", r:"Chain-of-Custody", l:"Verified"},
+    {n:"Evidence File", r:"Timestamped", l:"Blockchain"},
+    {n:"Trade Secret", r:"Shredded", l:"Irrecoverable"},
+    {n:"Compliance Wipe", r:"GDPR Ready", l:"Crypto-Shred"},
+    {n:"Merger Docs", r:"Anchored", l:"Tamper-Proof"},
+    {n:"Patent Filing", r:"Sealed", l:"On-chain"},
+    {n:"Whistleblower", r:"Protected", l:"Zero-Knowledge"},
+    {n:"Contract Addendum", r:"Verified", l:"Merkle Root"},
+    {n:"Regulatory Filing", r:"Compliant", l:"Anchored"},
   ];
   function memberCard(m){
-    return `<div class="member"><img src="https://i.pravatar.cc/100?img=${m.img}" alt=""><div><b>${m.n}</b><span class="role">${m.r}</span><span class="loc">📍 ${m.l}</span></div></div>`;
+    return `<div class="member"><div class="doc-ic" style="background:var(--cream-2);">${fileIc}</div><div><b>${m.n}</b><span class="role">${m.r}</span><span class="loc">${pinIc} ${m.l}</span></div></div>`;
   }
   const row1 = [...members, ...members];
   const row2 = [...members.slice().reverse(), ...members.slice().reverse()];
   document.getElementById('netrow1').innerHTML = row1.map(memberCard).join('');
   document.getElementById('netrow2').innerHTML = row2.map(memberCard).join('');
 
-  // ---- Professional tabs & carousel ----
+  // ---- Professional tabs & scenes ----
+  const INK = '#0B0B0B', TEAL = '#3C878B', TEAL_DEEP = '#2F6C70', MUTED = '#6b6864';
+  function sceneSeal(svg){
+    svg.innerHTML = `
+      <rect x="120" y="34" width="160" height="196" rx="12" fill="#fff" stroke="${INK}" stroke-width="2"/>
+      <path d="M142 78h76M142 102h92M142 126h56" stroke="${INK}" stroke-width="2" stroke-linecap="round" opacity=".3"/>
+      <rect x="148" y="158" width="104" height="48" rx="10" fill="#e8f4f4" stroke="${TEAL}" stroke-width="2"/>
+      <path d="M170 180v-9a9 9 0 0 1 18 0v9" stroke="${TEAL_DEEP}" stroke-width="2.5" fill="none"/>
+      <rect x="164" y="180" width="30" height="18" rx="4" fill="${TEAL_DEEP}"/>
+      <text x="200" y="256" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="${MUTED}">AES-256 · never leaves the device</text>`;
+  }
+  function sceneVerify(svg){
+    svg.innerHTML = `
+      <path d="M200 74 L120 148 M200 74 L280 148 M120 148 L80 218 M120 148 L160 218 M280 148 L240 218 M280 148 L320 218" stroke="${INK}" stroke-width="1.6" opacity=".35"/>
+      <rect x="164" y="44" width="72" height="30" rx="8" fill="${TEAL}"/>
+      <path d="M192 59l6 6 12-12" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="96" y="134" width="48" height="26" rx="7" fill="#fff" stroke="${INK}" stroke-width="1.8"/>
+      <rect x="256" y="134" width="48" height="26" rx="7" fill="#fff" stroke="${INK}" stroke-width="1.8"/>
+      <rect x="58" y="206" width="44" height="24" rx="7" fill="#fff" stroke="${INK}" stroke-width="1.8"/>
+      <rect x="138" y="206" width="44" height="24" rx="7" fill="#fff" stroke="${INK}" stroke-width="1.8"/>
+      <rect x="218" y="206" width="44" height="24" rx="7" fill="#fff" stroke="${INK}" stroke-width="1.8"/>
+      <rect x="298" y="206" width="44" height="24" rx="7" fill="#fff" stroke="${INK}" stroke-width="1.8"/>
+      <text x="200" y="262" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="${MUTED}">root anchored · tamper evident</text>`;
+  }
+  function sceneShred(svg){
+    svg.innerHTML = `
+      <rect x="128" y="40" width="144" height="180" rx="12" fill="#fff" stroke="${INK}" stroke-width="2" stroke-dasharray="5 6" opacity=".55"/>
+      <path d="M150 84h64M150 108h80" stroke="${INK}" stroke-width="2" stroke-linecap="round" opacity=".2"/>
+      <circle cx="200" cy="170" r="34" fill="#f6e3e0" stroke="#a04437" stroke-width="2"/>
+      <path d="M188 158l24 24M212 158l-24 24" stroke="#a04437" stroke-width="3" stroke-linecap="round"/>
+      <text x="200" y="240" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#a04437">key destroyed · irrecoverable</text>`;
+  }
   const roles = {
     "Seal":{
       title:"Seal Documents",
-      desc:"Encrypt PDFs, NDAs, and audit logs entirely in the browser. Your files never leave your machine unencrypted. AES-256 client-side encryption ensures zero-knowledge confidentiality.",
+      desc:"Encrypt PDFs, NDAs, and audit logs entirely in the browser. Your files never leave your machine unencrypted — AES-256 client-side encryption ensures zero-knowledge confidentiality.",
       tags:[["Zero-Knowledge","pill-green"],["AES-256","pill-purple"],["Client-Side","pill-blue"]],
-      imgs:[13,32,15,52,8]
+      scene:sceneSeal
     },
     "Verify":{
       title:"Verify On-Chain",
       desc:"A 32-byte Merkle root is posted to the blockchain, creating an immutable timestamp and tamper-proof proof of document existence.",
       tags:[["Merkle Root","pill-pink"],["Immutable","pill-blue"],["Timestamped","pill-green"]],
-      imgs:[35,44,29,53,11]
+      scene:sceneVerify
     },
     "Shred":{
       title:"Crypto-Shred",
       desc:"Destroy the decryption key and the data becomes permanently irrecoverable. Instant GDPR right-to-erasure and SOC 2 compliance wipes.",
       tags:[["GDPR","pill-purple"],["Irrecoverable","pill-red"],["Compliance","pill-blue"]],
-      imgs:[47,36,12,26,52]
+      scene:sceneShred
     }
   };
   const roleKeys = Object.keys(roles);
@@ -789,44 +891,46 @@
   tabsEl.innerHTML = roleKeys.map((k,i)=>`<button class="tab ${i===0?'active':''}" data-role="${k}">${k}</button>`).join('');
 
   let currentRole = "Seal";
-  let idx = 0;
   function renderPro(){
     const d = roles[currentRole];
     document.getElementById('pro-title').textContent = d.title;
     document.getElementById('pro-desc').textContent = d.desc;
     document.getElementById('pro-tags').innerHTML = d.tags.map(([t,c])=>`<span style="background:var(--${c}-bg);color:var(--${c}-fg);">${t}</span>`).join('');
-    document.getElementById('pro-img').src = `https://i.pravatar.cc/600?img=${d.imgs[idx]}`;
-    document.getElementById('pro-count').textContent = `${idx+1}/${d.imgs.length}`;
+    d.scene(document.getElementById('pro-img'));
+    document.getElementById('pro-count').textContent = `${roleKeys.indexOf(currentRole)+1}/${roleKeys.length}`;
+  }
+  function switchRole(k){
+    currentRole = k;
+    tabsEl.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.role === k));
+    renderPro();
   }
   tabsEl.addEventListener('click', e=>{
     const btn = e.target.closest('.tab'); if(!btn) return;
-    tabsEl.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    btn.classList.add('active');
-    currentRole = btn.dataset.role; idx = 0; renderPro();
+    switchRole(btn.dataset.role);
   });
   document.getElementById('pro-prev').addEventListener('click', ()=>{
-    const len = roles[currentRole].imgs.length;
-    idx = (idx-1+len)%len; renderPro();
+    const i = (roleKeys.indexOf(currentRole) - 1 + roleKeys.length) % roleKeys.length;
+    switchRole(roleKeys[i]);
   });
   document.getElementById('pro-next').addEventListener('click', ()=>{
-    const len = roles[currentRole].imgs.length;
-    idx = (idx+1)%len; renderPro();
+    const i = (roleKeys.indexOf(currentRole) + 1) % roleKeys.length;
+    switchRole(roleKeys[i]);
   });
   renderPro();
 
   // ---- Testimonial carousel ----
   const testis = [
-    {q:"We needed a way to timestamp sensitive NDAs without putting them on-chain. Anchr's zero-knowledge approach gave us immutable proof without the exposure.", n:"CHIEF COMPLIANCE OFFICER, FINTECH", img:51},
-    {q:"Crypto-shredding changed our GDPR workflow overnight. One key destruction, and the data is gone forever. Auditors love it.", n:"HEAD OF LEGAL, HEALTHTECH", img:22},
-    {q:"The Merkle root anchoring gives our litigation team a chain of custody that's bulletproof in court. Nothing gets tampered with.", n:"GENERAL COUNSEL, ENTERPRISE", img:9},
+    {q:"We needed a way to timestamp sensitive NDAs without putting them on-chain. Anchr's zero-knowledge approach gave us immutable proof without the exposure.", n:"CHIEF COMPLIANCE OFFICER, FINTECH", m:"CF"},
+    {q:"Crypto-shredding changed our GDPR workflow overnight. One key destruction, and the data is gone forever. Auditors love it.", n:"HEAD OF LEGAL, HEALTHTECH", m:"HL"},
+    {q:"The Merkle root anchoring gives our litigation team a chain of custody that's bulletproof in court. Nothing gets tampered with.", n:"GENERAL COUNSEL, ENTERPRISE", m:"GC"},
   ];
   let tIdx = 0;
   function renderTesti(){
     const t = testis[tIdx];
     document.getElementById('testi-quote').textContent = t.q;
     document.getElementById('testi-name').textContent = t.n;
+    document.getElementById('testi-mono').textContent = t.m;
     document.getElementById('testi-count').textContent = `${tIdx+1}/${testis.length}`;
-    document.querySelector('.testi-photo img').src = `https://i.pravatar.cc/300?img=${t.img}`;
   }
   document.getElementById('testi-prev').addEventListener('click', ()=>{ tIdx=(tIdx-1+testis.length)%testis.length; renderTesti(); });
   document.getElementById('testi-next').addEventListener('click', ()=>{ tIdx=(tIdx+1)%testis.length; renderTesti(); });
@@ -837,7 +941,7 @@
     els.forEach(el => el.classList.add('in'));
   })();
 
-  // ---- Typewriter effect (smooth) ----
+  // ---- Typewriter effect (smooth, faster) ----
   (function(){
     const cursor = document.querySelector('.tw-cursor');
     const line1 = document.getElementById('tw-line1');
@@ -852,9 +956,9 @@
       if(i <= text1.length){
         line1.textContent = text1.slice(0, i);
         i++;
-        setTimeout(type1, 28 + Math.random() * 14);
+        setTimeout(type1, 16 + Math.random() * 10);
       } else {
-        setTimeout(type2, 200);
+        setTimeout(type2, 120);
       }
     }
 
@@ -862,18 +966,183 @@
       if(j <= text2.length){
         line2.textContent = text2.slice(0, j);
         j++;
-        setTimeout(type2, 28 + Math.random() * 14);
+        setTimeout(type2, 16 + Math.random() * 10);
       } else {
         line2.classList.add('done');
         cursor.classList.remove('active');
         cursor.classList.add('done');
         setTimeout(()=>{
           document.querySelector('.hero-buttons').classList.add('visible');
-        }, 150);
+        }, 120);
       }
     }
 
-    setTimeout(type1, 400);
+    setTimeout(type1, 350);
+  })();
+
+  // ---- Seal Console: live SHA-256 + auto demo ----
+  (function(){
+    const input   = document.getElementById('console-input');
+    const rootEl  = document.getElementById('root-hash');
+    const leavesEl= document.getElementById('leaves');
+    const steps   = document.getElementById('steps');
+    const statusEl= document.getElementById('console-status');
+    const footEl  = document.getElementById('console-footnote');
+    const clockEl = document.getElementById('console-clock');
+    const chipA   = document.getElementById('chip-anchor');
+    const chipS   = document.getElementById('chip-shred');
+    const replay  = document.getElementById('replay-btn');
+    if(!input || !rootEl) return;
+
+    const STEPS = ['Hash','Merkle','Anchor','Sealed'];
+    const DOC_NAMES = ['acme-nda-final.pdf','q3-audit-log.csv','board-minutes.pdf','ip-assignment.docx','due-diligence.pdf'];
+    const DOC_SUBS  = ['0.8 MB · AES-256 · zero-knowledge','2.1 MB · AES-256 · zero-knowledge','1.4 MB · AES-256 · zero-knowledge','0.3 MB · AES-256 · zero-knowledge','6.7 MB · AES-256 · zero-knowledge'];
+    const DOC_TEXTS = [
+      'Master Services Agreement — Acme & Northwind — Confidential',
+      'user_id,action,timestamp\n1042,export,09:41\n1043,view,09:43',
+      'Minutes of the Board — Q3 review — approved unanimously',
+      'Invention Assignment — between Delta Systems and Employee',
+      'Project Helix — due diligence data room index — privileged',
+    ];
+    const DEFAULT_TEXT = DOC_TEXTS[0];
+
+    let docIdx = 0, cycleTimer = null, demoDone = false;
+    let lastTyped = 0, idleTimer = null;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    leavesEl.innerHTML = Array.from({length:4}, () => '<div class="leaf">··</div>').join('');
+
+    async function sha256Hex(str){
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+      return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+    function hexToBytes(hex){
+      const out = [];
+      for(let i=0;i<hex.length;i+=2) out.push(parseInt(hex.substr(i,2),16));
+      return out;
+    }
+    function scrambleTo(el, target, dur){
+      const chars = '0123456789abcdef';
+      const start = performance.now();
+      (function tick(){
+        const p = Math.min((performance.now()-start)/dur, 1);
+        if(p < 1){
+          el.textContent = target.split('').map((c,idx)=>
+            Math.random() < p ? c : chars[Math.floor(Math.random()*16)]).join('');
+          requestAnimationFrame(tick);
+        } else {
+          el.textContent = target;
+        }
+      })();
+    }
+    function setStep(i, cls){
+      const s = steps.children[i];
+      if(s) s.classList.remove('active','done'), s.classList.add(cls);
+    }
+    function resetSteps(){
+      [...steps.children].forEach(s=>s.classList.remove('active','done'));
+    }
+    function setStatus(kind, label){
+      statusEl.className = 'status-pill status-' + kind;
+      statusEl.innerHTML = '<span class="led"></span>' + label;
+    }
+    function docName(){
+      document.getElementById('doc-name').textContent = DOC_NAMES[docIdx];
+      document.getElementById('doc-sub').textContent = DOC_SUBS[docIdx];
+    }
+
+    async function computePipeline(text, animate){
+      const leaves = [];
+      for(let i=0;i<4;i++){
+        const chunk = text.slice(i*32, (i+1)*32) || String(i);
+        leaves.push(await sha256Hex(chunk));
+      }
+      const root = await sha256Hex(leaves.join(''));
+      if(animate && !reduced){
+        leaves.forEach((h,i)=>{
+          setTimeout(()=>{
+            const leaf = leavesEl.children[i];
+            leaf.textContent = h.slice(0,10);
+            leaf.classList.add('lit');
+            setStep(0, i===0 ? 'active' : 'done');
+          }, i*180);
+        });
+        setTimeout(()=>{ setStep(1,'active'); scrambleTo(rootEl, root, 700); }, 800);
+        setTimeout(()=>{ setStep(1,'done'); setStep(2,'active'); chipA.classList.add('show'); }, 1600);
+        setTimeout(()=>{ setStep(2,'done'); setStep(3,'done'); setStatus('sealed','Sealed'); footEl.textContent = 'Anchored · demo — no data leaves this page'; clockEl.textContent = 'root verified'; }, 2400);
+      } else {
+        leaves.forEach((h,i)=>{ leavesEl.children[i].textContent = h.slice(0,10); leavesEl.children[i].classList.add('lit'); });
+        rootEl.textContent = root;
+        setStatus('sealed','Sealed');
+        footEl.textContent = 'Anchored · demo — no data leaves this page';
+      }
+      return root;
+    }
+
+    function fullReset(){
+      resetSteps();
+      chipA.classList.remove('show');
+      chipS.classList.remove('show');
+      setStatus('ready','Ready to seal');
+      footEl.textContent = 'Client-side · Web Crypto API';
+      clockEl.textContent = '—';
+      rootEl.classList.remove('shredded');
+      rootEl.textContent = '—';
+      [...leavesEl.children].forEach(l=>{ l.classList.remove('lit'); l.textContent = '··'; });
+    }
+
+    async function runAutoDemo(){
+      clearTimeout(cycleTimer);
+      docName();
+      input.value = DOC_TEXTS[docIdx];
+      fullReset();
+      await computePipeline(input.value, true);
+      demoDone = true;
+      cycleTimer = setTimeout(async ()=>{
+        // shred phase
+        setStatus('shredded','Shredded');
+        rootEl.classList.add('shredded');
+        chipA.classList.remove('show');
+        chipS.classList.add('show');
+        footEl.textContent = 'Key destroyed · GDPR erasure complete';
+        clockEl.textContent = 'irrecoverable';
+        cycleTimer = setTimeout(()=>{
+          docIdx = (docIdx+1) % DOC_NAMES.length;
+          runAutoDemo();
+        }, 3200);
+      }, 4200);
+    }
+
+    let seq = 0;
+    async function runLive(text){
+      const my = ++seq;
+      clearTimeout(cycleTimer);
+      fullReset();
+      setStatus('ready','Hashing…');
+      const root = await computePipeline(text, false);
+      if(my !== seq) return;
+      setStatus('sealed','Sealed');
+      clockEl.textContent = 'root verified';
+      chipA.classList.add('show');
+    }
+
+    input.addEventListener('input', ()=>{
+      lastTyped = Date.now();
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(()=>{
+        if(Date.now() - lastTyped >= 6000 && document.hasFocus()) runAutoDemo();
+      }, 6000);
+      runLive(input.value);
+    });
+
+    replay.addEventListener('click', ()=>{ clearTimeout(cycleTimer); runAutoDemo(); });
+
+    document.addEventListener('visibilitychange', ()=>{
+      if(document.hidden) clearTimeout(cycleTimer);
+      else if(!demoDone || Date.now() - lastTyped > 6000) runAutoDemo();
+    });
+
+    runAutoDemo();
   })();
 
   // ---- iOS blur scroll reveal (both ways) ----
@@ -889,8 +1158,6 @@
       });
     }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
     sections.forEach(s=> observer.observe(s));
-    // hero reveals immediately
-    document.querySelector('.hero.reveal-section').classList.add('revealed');
 
     // ---- Liquid Glass: shrink + specular ----
     const navbar = document.getElementById('navbar');
@@ -923,6 +1190,11 @@
       }
     }, {passive:true});
   })();
+
+  // ---- Back to top ----
+  document.getElementById('back-top').addEventListener('click', ()=>{
+    window.scrollTo({top:0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+  });
 </script>
 </body>
 </html>
