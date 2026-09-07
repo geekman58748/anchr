@@ -230,8 +230,18 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
 <script src="anchr-core.js"></script>
+<script>
+  /* Load ethers.js asynchronously — upload/encrypt works without it.
+     Only anchoring needs it, and we handle the missing case gracefully. */
+  (function() {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js';
+    s.async = true;
+    s.onerror = function() { console.warn('ethers.js CDN unavailable — anchoring will use mock mode'); };
+    document.head.appendChild(s);
+  })();
+</script>
 <script>
   // Auth gate — redirect to auth page if not authenticated
   if (!sessionStorage.getItem('anchr-authed')) {

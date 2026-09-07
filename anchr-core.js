@@ -254,8 +254,8 @@ function prefixedRoot(hex) {
 async function anchrAnchor(record) {
   const root = prefixedRoot(record.rootHex);
 
-  // Check if MetaMask is installed
-  if (typeof window.ethereum !== 'undefined') {
+  // Check if MetaMask + ethers.js are available
+  if (typeof window.ethereum !== 'undefined' && typeof ethers !== 'undefined') {
     try {
       // Request accounts
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
