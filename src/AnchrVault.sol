@@ -1,25 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/// @title AnchrVault — On-chain encrypted document storage
+/// @title AnchrVault — On-chain encrypted document storage with TOTP auth
 /// @notice Stores encrypted document bytes permanently on the blockchain.
-///         Plaintext never touches the chain — only AES-256 encrypted blobs.
-///         Crypto-shredding destroys the stored bytes, making data irrecoverable.
+///         AES-256 keys are wrapped with a TOTP-derived key and stored on-chain.
+///         Any device with the TOTP code can unwrap the key and decrypt.
 contract AnchrVault {
     struct Document {
-        bytes32 id;           // keccak256(filename + sender + timestamp)
-        string name;          // original filename
-        string mimeType;      // e.g. "image/jpeg", "application/pdf"
-        bytes32 merkleRoot;   // Merkle root of encrypted content
-        address sender;       // who sealed this document
-        uint256 timestamp;    // block.timestamp
-        uint256 size;         // plaintext size in bytes
-        bool shredded;        // crypto-shredded flag
-        uint256 seq;          // sequence number
+        bytes32 id;
+        string name;
+        string mimeType;
+        bytes32 merkleRoot;
+        address sender;
+        uint256 timestamp;
+        uint256 size;
+        bool shredded;
+        uint256 seq;
     }
 
     mapping(bytes32 => Document) public documents;
-    mapping(bytes32 => bytes) public encryptedData;  // the actual encrypted bytes
+    mapping(bytes32 => bytes) public encryptedData;
+    mapping(bytes32 => bytes) public wrappedKeys;       // AES key wrapped with TOTP-derived key
+    mapping(bytes32 => bytes32) public totpCommitments;  // H(TOTP_secret) per document
     bytes32[] public documentIds;
     uint256 public docCount;
 
@@ -39,17 +41,20 @@ contract AnchrVault {
         uint256 timestamp
     );
 
-    /// @notice Seal a document — store encrypted bytes permanently on-chain.
-    /// @param name The original filename.
-    /// @param mimeType MIME type (e.g. "image/jpeg").
-    /// @param content The AES-256 encrypted document bytes.
-    /// @param merkleRoot Merkle root of the encrypted content (32 bytes).
-    /// @return id The document ID (keccak256 hash).
+    /// @notice Seal a document with TOTP-protected key.
+    /// @param name Filename.
+    /// @param mimeType MIME type.
+    /// @param content AES-256 encrypted document bytes.
+    /// @param merkleRoot Merkle root of encrypted content.
+    /// @param wrappedKey AES key wrapped with TOTP-derived key (for cross-device recovery).
+    /// @param totpCommitment H(TOTP_secret) — commitment hash for verification.
     function seal(
         string calldata name,
         string calldata mimeType,
         bytes calldata content,
-        bytes32 merkleRoot
+        bytes32 merkleRoot,
+        bytes calldata wrappedKey,
+        bytes32 totpCommitment
     ) external returns (bytes32 id) {
         require(content.length > 0, "Empty content");
         require(merkleRoot != bytes32(0), "Empty merkle root");
@@ -70,35 +75,37 @@ contract AnchrVault {
         });
 
         encryptedData[id] = content;
+        wrappedKeys[id] = wrappedKey;
+        totpCommitments[id] = totpCommitment;
         documentIds.push(id);
 
         emit DocumentSealed(docCount, id, name, msg.sender, block.timestamp, content.length);
     }
 
-    /// @notice Fetch encrypted document bytes from on-chain storage.
-    /// @param id The document ID.
-    /// @return name The filename.
-    /// @return mimeType The MIME type.
-    /// @return content The encrypted bytes.
-    /// @return doc The document metadata.
+    /// @notice Fetch encrypted document bytes and wrapped key.
     function fetch(bytes32 id) external view returns (
         string memory name,
         string memory mimeType,
         bytes memory content,
+        bytes memory key,
         Document memory doc
     ) {
         doc = documents[id];
         require(doc.sender != address(0), "Document not found");
         require(!doc.shredded, "Document was crypto-shredded");
         content = encryptedData[id];
+        key = wrappedKeys[id];
         name = doc.name;
         mimeType = doc.mimeType;
     }
 
-    /// @notice Crypto-shred: destroy the on-chain encrypted bytes.
-    ///         After shredding, the encrypted data is gone from the chain.
-    ///         The document metadata remains as a tombstone record.
-    /// @param id The document ID.
+    /// @notice Get the TOTP commitment hash for a document.
+    function getTotpCommitment(bytes32 id) external view returns (bytes32) {
+        require(documents[id].sender != address(0), "Document not found");
+        return totpCommitments[id];
+    }
+
+    /// @notice Crypto-shred: destroy everything on-chain.
     function shred(bytes32 id) external {
         Document storage doc = documents[id];
         require(doc.sender != address(0), "Document not found");
@@ -106,19 +113,17 @@ contract AnchrVault {
         require(!doc.shredded, "Already shredded");
 
         doc.shredded = true;
-
-        // Wipe the encrypted bytes (overwrite with zeros, then delete)
         delete encryptedData[id];
+        delete wrappedKeys[id];
+        delete totpCommitments[id];
 
         emit DocumentShredded(doc.seq, id, msg.sender, block.timestamp);
     }
 
-    /// @notice Get total number of sealed documents.
     function count() external view returns (uint256) {
         return docCount;
     }
 
-    /// @notice Get document metadata without the encrypted bytes.
     function getDocument(bytes32 id) external view returns (Document memory) {
         Document storage doc = documents[id];
         require(doc.sender != address(0), "Document not found");
