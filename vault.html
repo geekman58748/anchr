@@ -383,9 +383,17 @@
       try {
         if (doc.vaultDocId && typeof anchrFetchFromChain === 'function') {
           const encryptedBytes = await anchrFetchFromChain(doc.vaultDocId);
-          // Update local blob with chain data
+          // Store fetched bytes in IndexedDB so download works
           await dbPut('blobs', { id: doc.id, data: encryptedBytes.buffer });
-          alert('Fetched ' + encryptedBytes.length + ' bytes from chain. TX: ' + (doc.vaultTx || 'N/A'));
+          // Re-store the key too if missing
+          const keyRec = await dbGet('keys', doc.id);
+          if (!keyRec) {
+            alert('⚠️ Fetched ' + encryptedBytes.length + ' bytes from chain, but the decryption key is missing from this device. Re-seal from the original device to restore the key.');
+          } else {
+            alert('✓ Fetched ' + encryptedBytes.length + ' encrypted bytes from chain.\nTX: ' + (doc.vaultTx || 'N/A') + '\n\nDocument is now ready to download.');
+          }
+        } else {
+          alert('No on-chain data for this document.');
         }
       } catch (err) {
         alert('Fetch failed: ' + err.message);

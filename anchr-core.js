@@ -533,7 +533,13 @@ async function anchrFetchFromChain(vaultDocId) {
   const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_VAULT);
   const vault = getVaultContract(provider);
   const [, , content] = await vault.fetch(vaultDocId);
-  return new Uint8Array(content);
+  // content is a hex string like "0x3c8f2a..." — convert to Uint8Array
+  const hex = content.startsWith('0x') ? content.slice(2) : content;
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+  }
+  return bytes;
 }
 
 /* Shred a document from the chain.
