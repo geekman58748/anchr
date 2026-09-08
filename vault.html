@@ -392,7 +392,7 @@
         return `
         <tr>
           <td><div class="file-name"><div class="file-icon ${typeOf(d)}">${iconSvg[typeOf(d)]}</div>${d.name}</div></td>
-          <td><span class="file-hash">${d.shredded ? '—' : (d.vaultTx ? '<a href="https://sepolia.etherscan.io/tx/' + d.vaultTx + '" target="_blank" style="color:var(--teal); text-decoration:none;">' + shortHash(d.vaultTx) + '</a>' : shortHash(d.rootHex))}</span></td>
+          <td><span class="file-hash">${d.shredded ? '—' : (d.vaultTx ? '<a href="https://sepolia.etherscan.io/tx/' + d.vaultTx + '" target="_blank" style="color:var(--teal); text-decoration:none;">' + shortHash(d.vaultTx) + '</a>' : shortHash(d.rootHex))}</span>${d.totpSecret ? '<br><span class="file-hash" style="font-size:9px; color:var(--purple); cursor:pointer;" title="Click to copy TOTP secret" onclick="navigator.clipboard.writeText(\'' + d.totpSecret + '\');this.textContent=\'Copied!\';setTimeout(()=>this.textContent=\'' + d.totpSecret.slice(0,8) + '…\',1500)">' + d.totpSecret.slice(0, 8) + '…</span>' : ''}</td>
           <td><span class="badge badge-${st}"><span class="badge-dot"></span>${st[0].toUpperCase() + st.slice(1)}</span></td>
           <td style="color:var(--muted); font-size:11.5px;">${fmtDate(d.sealedAt)}</td>
           <td style="white-space:nowrap;">
@@ -400,6 +400,7 @@
               ? `<button class="action-btn" disabled style="opacity:0.4">Destroyed</button>`
               : `<button class="action-btn" data-act="download" data-id="${d.id}">Download</button>
                  ${d.onChain ? `<button class="action-btn" data-act="fetch" data-id="${d.id}">Fetch</button>` : `<button class="action-btn" data-act="anchor" data-id="${d.id}">Anchor</button>`}
+                 ${d.totpSecret ? `<button class="action-btn" data-act="copy-secret" data-id="${d.id}" style="color:var(--purple); border-color:var(--purple-soft);">Copy Key</button>` : ''}
                  <button class="action-btn danger" data-act="shred" data-id="${d.id}">Shred</button>`}
           </td>
         </tr>`;
@@ -457,6 +458,13 @@
         alert('Anchor failed: ' + (err.message || err));
       }
       await loadDocs();
+    } else if (btn.dataset.act === 'copy-secret') {
+      if (doc.totpSecret) {
+        navigator.clipboard.writeText(doc.totpSecret).then(() => {
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = 'Copy Key'; }, 1500);
+        });
+      }
     } else if (btn.dataset.act === 'fetch') {
       if (doc.vaultDocId) {
         // Pre-fill the login modal with the doc ID
@@ -569,13 +577,33 @@
       document.getElementById('encryptSubtitle').textContent = err.message;
     }
 
-    setTimeout(() => {
-      overlay.classList.remove('active');
-      document.getElementById('encryptSpinner').style.display = '';
-      document.getElementById('encryptTitle').textContent = 'Encrypting document...';
-      document.getElementById('encryptSubtitle').textContent = 'AES-256 client-side encryption';
-      STEP_IDS.forEach((_, i) => setStep(i, null));
-    }, 1800);
+    // If on-chain result with TOTP secret, keep overlay open so user can copy it
+    if (onChainResult && onChainResult.totpSecret) {
+      // Don't auto-close — user must click to dismiss
+      document.getElementById('encryptSpinner').style.display = 'none';
+      // Add a dismiss button
+      const dismissBtn = document.createElement('button');
+      dismissBtn.textContent = '✓ I saved the secret';
+      dismissBtn.style.cssText = 'margin-top:16px; padding:10px 20px; border-radius:8px; border:none; background:var(--teal); color:#fff; font-size:13px; font-weight:700; cursor:pointer;';
+      dismissBtn.onclick = () => {
+        overlay.classList.remove('active');
+        document.getElementById('encryptSpinner').style.display = '';
+        document.getElementById('encryptTitle').textContent = 'Encrypting document...';
+        document.getElementById('encryptSubtitle').textContent = 'AES-256 client-side encryption';
+        STEP_IDS.forEach((_, i) => setStep(i, null));
+        dismissBtn.remove();
+        document.getElementById('merkleResult').classList.remove('show');
+      };
+      document.querySelector('.encrypt-card').appendChild(dismissBtn);
+    } else {
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        document.getElementById('encryptSpinner').style.display = '';
+        document.getElementById('encryptTitle').textContent = 'Encrypting document...';
+        document.getElementById('encryptSubtitle').textContent = 'AES-256 client-side encryption';
+        STEP_IDS.forEach((_, i) => setStep(i, null));
+      }, 1800);
+    }
   }
 </script>
 </body>
