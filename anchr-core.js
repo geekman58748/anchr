@@ -437,3 +437,131 @@ async function anchrHasPasskey() {
   const all = await dbGetAll('keys');
   return all.some(k => k.credentialId);
 }
+
+/* ---------- AnchrVault — on-chain document storage ---------- */
+/* AnchrVault stores encrypted document bytes permanently on the
+ * Ethereum Sepolia blockchain. The actual encrypted bytes live in
+ * the transaction calldata — permanently part of blockchain history.
+ *
+ * Flow: seal locally (IndexedDB) → seal on-chain (AnchrVault contract)
+ *       fetch from chain → decrypt → shred destroys on-chain data
+ */
+
+const VAULT_ADDRESS = '0xeCc7501aBF6e6135Bc6f3af1DA72a7748D2e89e4'; // Sepolia
+const VAULT_ABI = [
+  'function seal(string name, string mimeType, bytes content, bytes32 merkleRoot) returns (bytes32 id)',
+  'function fetch(bytes32 id) view returns (string name, string mimeType, bytes content, tuple(bytes32 id, string name, string mimeType, bytes32 merkleRoot, address sender, uint256 timestamp, uint256 size, bool shredded, uint256 seq) doc)',
+  'function shred(bytes32 id)',
+  'function getDocument(bytes32 id) view returns (tuple(bytes32 id, string name, string mimeType, bytes32 merkleRoot, address sender, uint256 timestamp, uint256 size, bool shredded, uint256 seq))',
+  'function count() view returns (uint256)',
+];
+
+const SEPOLIA_RPC_VAULT = 'https://ethereum-sepolia-rpc.publicnode.com';
+
+/* Get vault contract instance. Requires ethers.js loaded. */
+function getVaultContract(signerOrProvider) {
+  if (typeof ethers === 'undefined') throw new Error('ethers.js not loaded');
+  return new ethers.Contract(VAULT_ADDRESS, VAULT_ABI, signerOrProvider);
+}
+
+/* Seal a document on-chain.
+ * Must be called AFTER anchrSeal() — the encrypted blob and key
+ * are already in IndexedDB. This posts the encrypted bytes to
+ * the AnchrVault contract on Sepolia.
+ *
+ * Returns: { docId, txHash, block, gasUsed }
+ */
+async function anchrSealOnChain(record, onStage) {
+  const stage = onStage || (() => {});
+
+  if (typeof ethers === 'undefined') throw new Error('ethers.js not loaded');
+  if (!window.ethereum) throw new Error('No wallet connected — install MetaMask');
+
+  stage('wallet', 10);
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  await provider.send('eth_requestAccounts', []);
+  const signer = await provider.getSigner();
+  const sender = await signer.getAddress();
+
+  stage('fetch', 30);
+  // Load encrypted blob from IndexedDB
+  const blobRec = await dbGet('blobs', record.id);
+  if (!blobRec) throw new Error('Encrypted blob not found in IndexedDB');
+  const encryptedBytes = new Uint8Array(blobRec.data);
+
+  stage('seal', 60);
+  const vault = getVaultContract(signer);
+  const rootBytes32 = '0x' + record.rootHex;
+  const tx = await vault.seal(
+    record.name,
+    record.type || 'application/octet-stream',
+    encryptedBytes,
+    rootBytes32
+  );
+
+  stage('confirm', 85);
+  const receipt = await tx.wait();
+
+  // Parse docId from event
+  const sealTopic = ethers.id('DocumentSealed(uint256,bytes32,string,address,uint256,uint256)');
+  const log = receipt.logs.find(l => l.topics[0] === sealTopic);
+  const docId = log ? log.topics[2] : null;
+
+  // Update local record
+  record.onChain = true;
+  record.vaultTx = receipt.hash;
+  record.vaultDocId = docId;
+  record.vaultBlock = Number(receipt.blockNumber);
+  record.vaultSender = sender;
+  await dbPut('docs', record);
+
+  stage('done', 100);
+  return {
+    docId,
+    txHash: receipt.hash,
+    block: Number(receipt.blockNumber),
+    gasUsed: Number(receipt.gasUsed),
+    chain: 'sepolia',
+  };
+}
+
+/* Fetch a document's encrypted bytes from the chain.
+ * Returns the encrypted bytes as Uint8Array.
+ */
+async function anchrFetchFromChain(vaultDocId) {
+  if (typeof ethers === 'undefined') throw new Error('ethers.js not loaded');
+  const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_VAULT);
+  const vault = getVaultContract(provider);
+  const [, , content] = await vault.fetch(vaultDocId);
+  return new Uint8Array(content);
+}
+
+/* Shred a document from the chain.
+ * Destroys the encrypted bytes on-chain. The data is permanently gone.
+ * Also shreds locally from IndexedDB.
+ */
+async function anchrShredOnChain(record) {
+  if (typeof ethers === 'undefined') throw new Error('ethers.js not loaded');
+  if (!window.ethereum) throw new Error('No wallet connected');
+
+  // Shred on-chain first
+  if (record.vaultDocId) {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send('eth_requestAccounts', []);
+    const signer = await provider.getSigner();
+    const vault = getVaultContract(signer);
+    const tx = await vault.shred(record.vaultDocId);
+    const receipt = await tx.wait();
+    record.vaultShredded = true;
+    record.vaultShredTx = receipt.hash;
+    record.vaultShredBlock = Number(receipt.blockNumber);
+  }
+
+  // Also shred locally
+  await anchrShred(record);
+
+  return {
+    shredTx: record.vaultShredTx || null,
+    block: record.vaultShredBlock || null,
+  };
+}

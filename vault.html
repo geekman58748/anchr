@@ -114,6 +114,7 @@
   .badge-dot { width: 5px; height: 5px; border-radius: 50%; }
   .badge-sealed { background: var(--green-soft); color: #2f6b3a; } .badge-sealed .badge-dot { background: var(--green); }
   .badge-anchored { background: var(--teal-light); color: var(--teal-deep); } .badge-anchored .badge-dot { background: var(--teal); }
+  .badge-on-chain { background: var(--teal-light); color: var(--teal-deep); } .badge-on-chain .badge-dot { background: var(--teal); }
   .badge-shredded { background: var(--red-soft); color: #a33; } .badge-shredded .badge-dot { background: var(--red); }
   .action-btn { padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border); background: #fff; font-size: 10.5px; font-weight: 600; cursor: pointer; transition: all 0.15s; color: var(--muted-2); }
   .action-btn:hover { background: var(--cream-2); }
@@ -171,6 +172,10 @@
           Search
           <kbd>⌘K</kbd>
         </button>
+        <button class="action-btn" id="walletBtn" style="font-size:11px; padding:5px 12px; border-color:var(--teal); color:var(--teal-deep);">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; vertical-align:-1px; margin-right:4px;"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          Connect Wallet
+        </button>
         <div class="top-avatar">A</div>
       </div>
     </header>
@@ -224,8 +229,7 @@
       <div class="encrypt-step" id="step1"><div class="encrypt-dot">1</div><span>Read file in browser</span></div>
       <div class="encrypt-step" id="step2"><div class="encrypt-dot">2</div><span>AES-256 encrypt</span></div>
       <div class="encrypt-step" id="step3"><div class="encrypt-dot">3</div><span>Compute Merkle root</span></div>
-      <div class="encrypt-step" id="step4"><div class="encrypt-dot">4</div><span>Store encrypted blob locally</span></div>
-      <div class="encrypt-step" id="step5"><div class="encrypt-dot">5</div><span>Anchor on-chain</span></div>
+      <div class="encrypt-step" id="step4"><div class="encrypt-dot">4</div><span>Store encrypted blob locally</span></div>          <div class="encrypt-step" id="step5"><div class="encrypt-dot">5</div><span>Store on-chain (Sepolia)</span></div>
     </div>
   </div>
 </div>
@@ -243,10 +247,31 @@
   })();
 </script>
 <script>
-  // Auth gate — redirect to auth page if not authenticated
+  // Auth gate
   if (!sessionStorage.getItem('anchr-authed')) {
-    // Allow direct access for now (passkey not required yet)
-    // window.location.href = 'auth.html';
+    // Allow direct access for now
+  }
+
+  /* Wallet connect */
+  const walletBtn = document.getElementById('walletBtn');
+  async function connectWallet() {
+    if (!window.ethereum) { alert('Install MetaMask to seal documents on-chain.'); return; }
+    try {
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const addr = await signer.getAddress();
+      walletBtn.textContent = addr.slice(0, 6) + '…' + addr.slice(-4);
+      walletBtn.style.background = 'var(--teal-light)';
+      walletBtn.style.borderColor = 'var(--teal)';
+      sessionStorage.setItem('anchr-wallet', addr);
+    } catch (err) {
+      console.warn('Wallet connect failed:', err);
+    }
+  }
+  walletBtn.addEventListener('click', connectWallet);
+  if (sessionStorage.getItem('anchr-wallet') && window.ethereum) {
+    connectWallet();
   }
 
   const iconSvg = {
@@ -269,7 +294,12 @@
     return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
   function shortHash(hex) { return hex ? hex.slice(0, 6) + '…' + hex.slice(-4) : '—'; }
-  function statusOf(d) { return d.shredded ? 'shredded' : (d.anchored ? 'anchored' : 'sealed'); }
+  function statusOf(d) {
+    if (d.shredded) return 'shredded';
+    if (d.onChain) return 'on-chain';
+    if (d.anchored) return 'anchored';
+    return 'sealed';
+  }
 
   function renderFiles() {
     const tbody = document.getElementById('fileTableBody');
@@ -283,14 +313,14 @@
         return `
         <tr>
           <td><div class="file-name"><div class="file-icon ${typeOf(d)}">${iconSvg[typeOf(d)]}</div>${d.name}</div></td>
-          <td><span class="file-hash">${d.shredded ? '—' : shortHash(d.rootHex)}</span></td>
+          <td><span class="file-hash">${d.shredded ? '—' : (d.vaultTx ? '<a href="https://sepolia.etherscan.io/tx/' + d.vaultTx + '" target="_blank" style="color:var(--teal); text-decoration:none;">' + shortHash(d.vaultTx) + '</a>' : shortHash(d.rootHex))}</span></td>
           <td><span class="badge badge-${st}"><span class="badge-dot"></span>${st[0].toUpperCase() + st.slice(1)}</span></td>
           <td style="color:var(--muted); font-size:11.5px;">${fmtDate(d.sealedAt)}</td>
           <td style="white-space:nowrap;">
             ${d.shredded
               ? `<button class="action-btn" disabled style="opacity:0.4">Destroyed</button>`
               : `<button class="action-btn" data-act="download" data-id="${d.id}">Download</button>
-                 <button class="action-btn" data-act="anchor" data-id="${d.id}">Anchor</button>
+                 ${d.onChain ? `<button class="action-btn" data-act="fetch" data-id="${d.id}">Fetch</button>` : `<button class="action-btn" data-act="anchor" data-id="${d.id}">Anchor</button>`}
                  <button class="action-btn danger" data-act="shred" data-id="${d.id}">Shred</button>`}
           </td>
         </tr>`;
@@ -299,9 +329,9 @@
     document.getElementById('fileCount').textContent = docs.length === 1 ? '1 file' : docs.length + ' files';
 
     const sealed = docs.filter(d => !d.shredded).length;
-    const anchored = docs.filter(d => d.anchored && !d.shredded).length;
+    const onChain = docs.filter(d => d.onChain && !d.shredded).length;
     document.getElementById('statSealed').textContent = sealed.toLocaleString();
-    document.getElementById('statAnchored').textContent = anchored.toLocaleString();
+    document.getElementById('statAnchored').textContent = onChain.toLocaleString();
     document.getElementById('statKeys').textContent = sealed.toLocaleString();
     document.getElementById('statShredded').textContent = docs.filter(d => d.shredded).length.toLocaleString();
   }
@@ -331,22 +361,48 @@
         alert('Unseal failed: ' + err.message);
       }
     } else if (btn.dataset.act === 'anchor') {
-      if (typeof anchrAnchor === 'function') {
-        btn.textContent = 'Anchoring…'; btn.disabled = true;
-        try {
+      btn.textContent = 'Anchoring…'; btn.disabled = true;
+      try {
+        if (typeof anchrSealOnChain === 'function' && window.ethereum) {
+          await anchrSealOnChain(doc, () => {});
+        } else if (typeof anchrAnchor === 'function') {
           const tx = await anchrAnchor(doc);
           doc.anchored = true; doc.anchorTx = tx;
           await dbPut('docs', doc);
-        } catch (err) {
-          alert('Anchor failed: ' + (err.message || err));
+        } else {
+          alert('Connect wallet to anchor on-chain.');
+          btn.textContent = 'Anchor'; btn.disabled = false;
+          return;
         }
-        await loadDocs();
-      } else {
-        alert('Sepolia anchoring module not loaded yet — the root is sealed and ready on this device.');
+      } catch (err) {
+        alert('Anchor failed: ' + (err.message || err));
       }
+      await loadDocs();
+    } else if (btn.dataset.act === 'fetch') {
+      btn.textContent = 'Fetching…'; btn.disabled = true;
+      try {
+        if (doc.vaultDocId && typeof anchrFetchFromChain === 'function') {
+          const encryptedBytes = await anchrFetchFromChain(doc.vaultDocId);
+          // Update local blob with chain data
+          await dbPut('blobs', { id: doc.id, data: encryptedBytes.buffer });
+          alert('Fetched ' + encryptedBytes.length + ' bytes from chain. TX: ' + (doc.vaultTx || 'N/A'));
+        }
+      } catch (err) {
+        alert('Fetch failed: ' + err.message);
+      }
+      btn.textContent = 'Fetch'; btn.disabled = false;
     } else if (btn.dataset.act === 'shred') {
-      if (!confirm(`Crypto-shred "${doc.name}"? The decryption key will be destroyed permanently. This cannot be undone.`)) return;
-      await anchrShred(doc);
+      const onChain = doc.onChain ? ' (also destroys on-chain data)' : '';
+      if (!confirm(`Crypto-shred "${doc.name}"?${onChain} This cannot be undone.`)) return;
+      try {
+        if (doc.onChain && typeof anchrShredOnChain === 'function' && window.ethereum) {
+          await anchrShredOnChain(doc);
+        } else {
+          await anchrShred(doc);
+        }
+      } catch (err) {
+        alert('Shred failed: ' + err.message);
+      }
       await loadDocs();
     }
   });
@@ -361,7 +417,7 @@
   fileInput.addEventListener('change', e => { if (e.target.files.length) sealFiles(e.target.files); fileInput.value = ''; });
 
   const STEP_IDS = ['step1', 'step2', 'step3', 'step4', 'step5'];
-  const STAGE_TO_STEP = { read: 0, encrypt: 1, merkle: 2, store: 3 };
+  const STAGE_TO_STEP = { read: 0, encrypt: 1, merkle: 2, store: 3, wallet: 4, fetch: 4, seal: 4, confirm: 4 };
   function setStep(i, state) {
     const el = document.getElementById(STEP_IDS[i]);
     el.classList.remove('active', 'done');
@@ -394,13 +450,27 @@
         for (let s = 0; s < 4; s++) setStep(s, 'done');
         setStep(4, 'active');
         bar.style.width = '92%';
-        await new Promise(r => setTimeout(r, 350));
+
+        // On-chain seal
+        let onChainResult = null;
+        if (typeof anchrSealOnChain === 'function' && window.ethereum) {
+          try {
+            onChainResult = await anchrSealOnChain(rec, (stage, pct) => {
+              bar.style.width = (92 + pct * 0.08) + '%';
+            });
+          } catch (chainErr) {
+            console.warn('On-chain seal failed (kept locally):', chainErr.message);
+          }
+        }
+
         setStep(4, 'done');
         bar.style.width = '100%';
 
         document.getElementById('encryptSpinner').style.display = 'none';
-        document.getElementById('encryptTitle').textContent = 'Document sealed';
-        document.getElementById('encryptSubtitle').textContent = 'Root committed locally — ready to anchor';
+        document.getElementById('encryptTitle').textContent = onChainResult ? 'Document sealed on-chain' : 'Document sealed locally';
+        document.getElementById('encryptSubtitle').textContent = onChainResult
+          ? 'TX: ' + onChainResult.txHash.slice(0, 18) + '… — permanently on Sepolia'
+          : 'Root committed locally — connect wallet to anchor on-chain';
         document.getElementById('merkleHash').textContent = '0x' + rec.rootHex;
         document.getElementById('merkleResult').classList.add('show');
         await loadDocs();

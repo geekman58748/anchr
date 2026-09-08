@@ -27,3 +27,12 @@ foundry.toml
 src/Counter.sol
 script/Counter.s.sol
 test/
+
+# Node
+node_modules/
+package-lock.json
+package.json
+
+# Test artifacts
+e2e-*.mjs
+test-decrypted.*
