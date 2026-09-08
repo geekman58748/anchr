@@ -603,6 +603,68 @@ async function anchrLookupByAddress(address) {
   return docs;
 }
 
+/* Simple login: enter 6-digit code → fetch ALL documents.
+ * One TOTP secret per wallet. One code unlocks everything.
+ */
+async function anchrSimpleLogin(totpCode) {
+  if (typeof ethers === 'undefined') throw new Error('ethers.js not loaded');
+  if (!window.ethereum) throw new Error('No wallet connected');
+
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  await provider.send('eth_requestAccounts', []);
+  const signer = await provider.getSigner();
+  const addr = await signer.getAddress();
+
+  // Get master TOTP secret from local storage
+  const masterSecret = localStorage.getItem('anchr-totp-secret');
+  if (!masterSecret) throw new Error('No TOTP secret found on this device. Use the original device to get it.');
+
+  // Verify the code
+  const secretBytes = base32Decode(masterSecret);
+  const valid = await verifyTotp(secretBytes, totpCode);
+  if (!valid) throw new Error('Invalid code. Check your authenticator app.');
+
+  // Get all document IDs from chain
+  const vault = getVaultContract(provider);
+  const docIds = await vault.getDocumentsBySender(addr);
+
+  const results = [];
+  for (const docId of docIds) {
+    if (docId === ethers.ZeroHash) continue;
+    try {
+      const [, , contentHex, keyHex, doc] = await vault.fetch(docId);
+      if (doc.shredded) continue;
+
+      // Unwrap the AES key
+      const wrappedKeyBytes = hexToBytes(keyHex);
+      const aesKeyRaw = await unwrapKey(wrappedKeyBytes, secretBytes);
+
+      // Store locally
+      await dbPut('keys', { docId, key: aesKeyRaw.buffer });
+      const encryptedBytes = hexToBytes(contentHex);
+      await dbPut('blobs', { id: docId, data: encryptedBytes.buffer });
+      await dbPut('docs', {
+        id: docId,
+        name: doc.name,
+        type: doc.mimeType,
+        sealedAt: Number(doc.timestamp) * 1000,
+        rootHex: doc.merkleRoot.slice(2),
+        onChain: true,
+        shredded: false,
+        vaultDocId: docId,
+        vaultSender: doc.sender,
+        totpSecret: masterSecret,
+      });
+
+      results.push({ id: docId, name: doc.name, size: Number(doc.size) });
+    } catch (err) {
+      console.warn('Failed to import doc', docId, err.message);
+    }
+  }
+
+  return results;
+}
+
 /* ---------- AnchrVault — on-chain document storage ---------- */
 /* AnchrVault stores encrypted document bytes permanently on the
  * Ethereum Sepolia blockchain. The actual encrypted bytes live in
@@ -612,7 +674,7 @@ async function anchrLookupByAddress(address) {
  *       fetch from chain → decrypt → shred destroys on-chain data
  */
 
-const VAULT_ADDRESS = '0xC5a678a4073f04Fdf028CAE6570E2Cf20c598c61'; // Sepolia — AnchrVault v3 (lookup + import)
+const VAULT_ADDRESS = '0xc1eDa79d2Fd90F0630AB29A16D59F68f0A2F7C9e'; // Sepolia — AnchrVault v4 (simple login)
 const VAULT_ABI = [
   'function seal(string name, string mimeType, bytes content, bytes32 merkleRoot, bytes wrappedKey, bytes32 totpCommitment) returns (bytes32 id)',
   'function fetch(bytes32 id) view returns (string name, string mimeType, bytes content, bytes key, tuple(bytes32 id, string name, string mimeType, bytes32 merkleRoot, address sender, uint256 timestamp, uint256 size, bool shredded, uint256 seq) doc)',
@@ -620,6 +682,7 @@ const VAULT_ABI = [
   'function getDocument(bytes32 id) view returns (tuple(bytes32 id, string name, string mimeType, bytes32 merkleRoot, address sender, uint256 timestamp, uint256 size, bool shredded, uint256 seq))',
   'function getTotpCommitment(bytes32 id) view returns (bytes32)',
   'function getDocumentsBySender(address sender) view returns (bytes32[])',
+  'function getWalletTotpCommitment(address sender) view returns (bytes32)',
   'function count() view returns (uint256)',
 ];
 
@@ -660,9 +723,16 @@ async function anchrSealOnChain(record, onStage) {
   const aesKeyRaw = new Uint8Array(keyRec.key);
 
   stage('totp', 40);
-  // Generate TOTP secret and wrap the AES key
-  const totpSecret = generateTotpSecret();
-  const totpSecretBase32 = base32Encode(totpSecret);
+  // Use existing TOTP secret or generate new one
+  let totpSecretBase32 = localStorage.getItem('anchr-totp-secret');
+  let totpSecret;
+  if (totpSecretBase32) {
+    totpSecret = base32Decode(totpSecretBase32);
+  } else {
+    totpSecret = generateTotpSecret();
+    totpSecretBase32 = base32Encode(totpSecret);
+    localStorage.setItem('anchr-totp-secret', totpSecretBase32);
+  }
   const totpCommitment = await hashTotpSecret(totpSecret);
   const wrappedKey = await wrapKey(aesKeyRaw, totpSecret);
 

@@ -22,6 +22,8 @@ contract AnchrVault {
     mapping(bytes32 => bytes) public encryptedData;
     mapping(bytes32 => bytes) public wrappedKeys;       // AES key wrapped with TOTP-derived key
     mapping(bytes32 => bytes32) public totpCommitments;  // H(TOTP_secret) per document
+    mapping(address => bytes32) public walletTotpCommitment; // H(master_secret) per wallet
+    mapping(address => bytes32[]) public walletDocuments;    // all doc IDs per wallet
     bytes32[] public documentIds;
     uint256 public docCount;
 
@@ -78,6 +80,11 @@ contract AnchrVault {
         wrappedKeys[id] = wrappedKey;
         totpCommitments[id] = totpCommitment;
         documentIds.push(id);
+        walletDocuments[msg.sender].push(id);
+        // Store master commitment on first seal
+        if (walletTotpCommitment[msg.sender] == bytes32(0)) {
+            walletTotpCommitment[msg.sender] = totpCommitment;
+        }
 
         emit DocumentSealed(docCount, id, name, msg.sender, block.timestamp, content.length);
     }
@@ -132,19 +139,10 @@ contract AnchrVault {
 
     /// @notice Get all document IDs for a given sender address.
     function getDocumentsBySender(address sender) external view returns (bytes32[] memory) {
-        bytes32[] memory result = new bytes32[](docCount);
-        uint256 count = 0;
-        for (uint256 i = 0; i < docCount; i++) {
-            if (documents[documentIds[i]].sender == sender && !documents[documentIds[i]].shredded) {
-                result[count] = documentIds[i];
-                count++;
-            }
-        }
-        // Trim array
-        bytes32[] memory trimmed = new bytes32[](count);
-        for (uint256 i = 0; i < count; i++) {
-            trimmed[i] = result[i];
-        }
-        return trimmed;
+        return walletDocuments[sender];
+    }
+
+    function getWalletTotpCommitment(address sender) external view returns (bytes32) {
+        return walletTotpCommitment[sender];
     }
 }
