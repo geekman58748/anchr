@@ -129,4 +129,22 @@ contract AnchrVault {
         require(doc.sender != address(0), "Document not found");
         return doc;
     }
+
+    /// @notice Get all document IDs for a given sender address.
+    function getDocumentsBySender(address sender) external view returns (bytes32[] memory) {
+        bytes32[] memory result = new bytes32[](docCount);
+        uint256 count = 0;
+        for (uint256 i = 0; i < docCount; i++) {
+            if (documents[documentIds[i]].sender == sender && !documents[documentIds[i]].shredded) {
+                result[count] = documentIds[i];
+                count++;
+            }
+        }
+        // Trim array
+        bytes32[] memory trimmed = new bytes32[](count);
+        for (uint256 i = 0; i < count; i++) {
+            trimmed[i] = result[i];
+        }
+        return trimmed;
+    }
 }

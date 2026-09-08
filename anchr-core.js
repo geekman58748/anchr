@@ -579,6 +579,30 @@ async function unwrapKey(wrappedKeyBytes, totpSecret) {
   return new Uint8Array(rawKey);
 }
 
+/* ---------- On-chain document lookup ---------- */
+/* Find all documents sealed by a wallet address. */
+async function anchrLookupByAddress(address) {
+  if (typeof ethers === 'undefined') throw new Error('ethers.js not loaded');
+  const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_VAULT);
+  const vault = getVaultContract(provider);
+  const docIds = await vault.getDocumentsBySender(address);
+  const docs = [];
+  for (const id of docIds) {
+    if (id === ethers.ZeroHash) continue;
+    const doc = await vault.getDocument(id);
+    docs.push({
+      id,
+      name: doc.name,
+      mimeType: doc.mimeType,
+      sender: doc.sender,
+      timestamp: Number(doc.timestamp),
+      size: Number(doc.size),
+      shredded: doc.shredded,
+    });
+  }
+  return docs;
+}
+
 /* ---------- AnchrVault — on-chain document storage ---------- */
 /* AnchrVault stores encrypted document bytes permanently on the
  * Ethereum Sepolia blockchain. The actual encrypted bytes live in
@@ -588,13 +612,14 @@ async function unwrapKey(wrappedKeyBytes, totpSecret) {
  *       fetch from chain → decrypt → shred destroys on-chain data
  */
 
-const VAULT_ADDRESS = '0xCf4D9e369a9ae11857fA09CC12F63d26dB692f1b'; // Sepolia — AnchrVault v2 (TOTP + wrapped keys)
+const VAULT_ADDRESS = '0xC5a678a4073f04Fdf028CAE6570E2Cf20c598c61'; // Sepolia — AnchrVault v3 (lookup + import)
 const VAULT_ABI = [
   'function seal(string name, string mimeType, bytes content, bytes32 merkleRoot, bytes wrappedKey, bytes32 totpCommitment) returns (bytes32 id)',
   'function fetch(bytes32 id) view returns (string name, string mimeType, bytes content, bytes key, tuple(bytes32 id, string name, string mimeType, bytes32 merkleRoot, address sender, uint256 timestamp, uint256 size, bool shredded, uint256 seq) doc)',
   'function shred(bytes32 id)',
   'function getDocument(bytes32 id) view returns (tuple(bytes32 id, string name, string mimeType, bytes32 merkleRoot, address sender, uint256 timestamp, uint256 size, bool shredded, uint256 seq))',
   'function getTotpCommitment(bytes32 id) view returns (bytes32)',
+  'function getDocumentsBySender(address sender) view returns (bytes32[])',
   'function count() view returns (uint256)',
 ];
 

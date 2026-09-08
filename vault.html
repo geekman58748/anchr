@@ -191,11 +191,20 @@
           <div class="stat-card"><div class="stat-top"><span class="stat-label">Crypto-Shredded</span><div class="stat-icon red"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a33" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6m0 0l-3 4m3-4l3 4"/><path d="M12 2c-3 4-6 7-6 11a6 6 0 0012 0c0-4-3-7-6-11z"/></svg></div></div><div class="stat-value" id="statShredded">0</div><div class="stat-change" style="color:var(--muted);">GDPR wipes</div></div>
         </div>
 
-        <div class="dropzone" id="dropzone">
-          <div class="dropzone-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
-          <h3>Drop files to seal</h3>
-          <p>or <span class="browse" onclick="document.getElementById('fileInput').click()">browse</span> — encrypted with AES-256 before anything happens</p>
-          <input type="file" id="fileInput" multiple>
+        <div style="display:flex; gap:10px; margin-bottom:24px;">
+          <div class="dropzone" id="dropzone" style="flex:1; margin-bottom:0;">
+            <div class="dropzone-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+            <h3>Drop files to seal</h3>
+            <p>or <span class="browse" onclick="document.getElementById('fileInput').click()">browse</span> — encrypted with AES-256</p>
+            <input type="file" id="fileInput" multiple>
+          </div>
+          <div style="flex:0 0 auto; display:flex; flex-direction:column; gap:8px; justify-content:center;">
+            <button class="action-btn" id="importBtn" style="padding:10px 16px; font-size:12px; border-color:var(--teal); color:var(--teal-deep); white-space:nowrap;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; vertical-align:-1px; margin-right:4px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Import from Chain
+            </button>
+            <span style="font-size:9px; color:var(--muted); text-align:center;">New device?</span>
+          </div>
         </div>
 
         <div class="merkle-result" id="merkleResult">
@@ -231,8 +240,12 @@
       <input id="loginTotpSecret" type="text" placeholder="JBSWY3DPEHPK3PXP" style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-family:'JetBrains Mono'; font-size:12px; margin-bottom:12px; box-sizing:border-box;">
       <label style="font-size:11px; font-weight:600; color:var(--muted-2); display:block; margin-bottom:4px;">6-Digit Code</label>
       <input id="loginTotpCode" type="text" maxlength="6" placeholder="000000" style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-family:'JetBrains Mono'; font-size:18px; letter-spacing:8px; text-align:center; margin-bottom:12px; box-sizing:border-box;">
-      <label style="font-size:11px; font-weight:600; color:var(--muted-2); display:block; margin-bottom:4px;">Document ID (from chain)</label>
-      <input id="loginDocId" type="text" placeholder="0x..." style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-family:'JetBrains Mono'; font-size:11px; margin-bottom:16px; box-sizing:border-box;">
+      <label style="font-size:11px; font-weight:600; color:var(--muted-2); display:block; margin-bottom:4px;">Document ID</label>
+      <div style="display:flex; gap:6px; margin-bottom:6px;">
+        <input id="loginDocId" type="text" placeholder="0x..." style="flex:1; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-family:'JetBrains Mono'; font-size:11px; box-sizing:border-box;">
+        <button class="action-btn" id="lookupBtn" style="white-space:nowrap; font-size:10px; padding:8px 10px;">Find My Docs</button>
+      </div>
+      <div id="lookupResults" style="display:none; margin-bottom:12px; max-height:120px; overflow-y:auto;"></div>
     </div>
     <div id="loginError" style="display:none; background:var(--red-soft); color:#a33; padding:8px 12px; border-radius:6px; font-size:11px; margin-bottom:12px;"></div>
     <div style="display:flex; gap:8px;">
@@ -294,9 +307,56 @@
     }
   }
   walletBtn.addEventListener('click', connectWallet);
+
+  /* Import from chain button */
+  document.getElementById('importBtn').addEventListener('click', () => {
+    document.getElementById('loginDocId').value = '';
+    document.getElementById('loginTotpSecret').value = '';
+    document.getElementById('loginTotpCode').value = '';
+    document.getElementById('loginError').style.display = 'none';
+    document.getElementById('loginOverlay').classList.add('active');
+    document.getElementById('loginDocId').focus();
+  });
   if (sessionStorage.getItem('anchr-wallet') && window.ethereum) {
     connectWallet();
   }
+
+  /* Lookup by wallet address */
+  document.getElementById('lookupBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('lookupBtn');
+    const resultsEl = document.getElementById('lookupResults');
+    btn.textContent = 'Looking…'; btn.disabled = true;
+    resultsEl.style.display = 'none';
+    try {
+      // Get connected wallet address
+      let addr = '';
+      if (window.ethereum) {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        addr = accounts[0];
+      }
+      if (!addr) {
+        resultsEl.innerHTML = '<div style="font-size:11px; color:var(--red); padding:8px;">Connect wallet first.</div>';
+        resultsEl.style.display = 'block';
+        return;
+      }
+      const docs = await anchrLookupByAddress(addr);
+      if (docs.length === 0) {
+        resultsEl.innerHTML = '<div style="font-size:11px; color:var(--muted); padding:8px;">No documents found for this wallet.</div>';
+      } else {
+        resultsEl.innerHTML = docs.map(d =>
+          `<div style="display:flex; align-items:center; justify-content:space-between; padding:6px 8px; border:1px solid var(--border); border-radius:6px; margin-bottom:4px; cursor:pointer; font-size:11px;" onclick="document.getElementById('loginDocId').value='${d.id}';document.getElementById('lookupResults').style.display='none';">
+            <span style="font-weight:600;">${d.name}</span>
+            <span style="color:var(--muted); font-family:'JetBrains Mono'; font-size:9px;">${d.id.slice(0,10)}…</span>
+          </div>`
+        ).join('');
+      }
+      resultsEl.style.display = 'block';
+    } catch (err) {
+      resultsEl.innerHTML = '<div style="font-size:11px; color:var(--red); padding:8px;">' + err.message + '</div>';
+      resultsEl.style.display = 'block';
+    }
+    btn.textContent = 'Find My Docs'; btn.disabled = false;
+  });
 
   /* TOTP Login handler */
   document.getElementById('loginBtn').addEventListener('click', async () => {
