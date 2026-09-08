@@ -302,53 +302,16 @@
 
   /* Import from chain button */
   document.getElementById('importBtn').addEventListener('click', () => {
-    document.getElementById('loginDocId').value = '';
-    document.getElementById('loginTotpSecret').value = '';
     document.getElementById('loginTotpCode').value = '';
     document.getElementById('loginError').style.display = 'none';
     document.getElementById('loginOverlay').classList.add('active');
-    document.getElementById('loginDocId').focus();
+    document.getElementById('loginTotpCode').focus();
   });
   if (sessionStorage.getItem('anchr-wallet') && window.ethereum) {
     connectWallet();
   }
 
-  /* Lookup by wallet address */
-  document.getElementById('lookupBtn').addEventListener('click', async () => {
-    const btn = document.getElementById('lookupBtn');
-    const resultsEl = document.getElementById('lookupResults');
-    btn.textContent = 'Looking…'; btn.disabled = true;
-    resultsEl.style.display = 'none';
-    try {
-      // Get connected wallet address
-      let addr = '';
-      if (window.ethereum) {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        addr = accounts[0];
-      }
-      if (!addr) {
-        resultsEl.innerHTML = '<div style="font-size:11px; color:var(--red); padding:8px;">Connect wallet first.</div>';
-        resultsEl.style.display = 'block';
-        return;
-      }
-      const docs = await anchrLookupByAddress(addr);
-      if (docs.length === 0) {
-        resultsEl.innerHTML = '<div style="font-size:11px; color:var(--muted); padding:8px;">No documents found for this wallet.</div>';
-      } else {
-        resultsEl.innerHTML = docs.map(d =>
-          `<div style="display:flex; align-items:center; justify-content:space-between; padding:6px 8px; border:1px solid var(--border); border-radius:6px; margin-bottom:4px; cursor:pointer; font-size:11px;" onclick="document.getElementById('loginDocId').value='${d.id}';document.getElementById('lookupResults').style.display='none';">
-            <span style="font-weight:600;">${d.name}</span>
-            <span style="color:var(--muted); font-family:'JetBrains Mono'; font-size:9px;">${d.id.slice(0,10)}…</span>
-          </div>`
-        ).join('');
-      }
-      resultsEl.style.display = 'block';
-    } catch (err) {
-      resultsEl.innerHTML = '<div style="font-size:11px; color:var(--red); padding:8px;">' + err.message + '</div>';
-      resultsEl.style.display = 'block';
-    }
-    btn.textContent = 'Find My Docs'; btn.disabled = false;
-  });
+
 
   /* Simple login: just enter 6-digit code */
   document.getElementById('loginBtn').addEventListener('click', async () => {
