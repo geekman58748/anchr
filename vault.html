@@ -462,7 +462,12 @@
           return;
         }
       } catch (err) {
-        alert('Anchor failed: ' + (err.message || err));
+        const msg = (err.message || String(err));
+        if (msg.includes('missing revert data') || msg.includes('estimate gas')) {
+          alert('Blockchain anchor failed — MetaMask could not estimate gas.\n\nThis usually happens when your wallet has EIP-7702 delegation active.\nThe document is saved locally and can still be downloaded.');
+        } else {
+          alert('Anchor failed: ' + msg);
+        }
       }
       await loadDocs();
     } else if (btn.dataset.act === 'copy-secret') {

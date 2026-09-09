@@ -313,7 +313,12 @@ async function anchrAnchor(record) {
       const addr = accounts[0];
 
       // Detect EIP-7702 — warn user and offer direct signing
-      if (await hasEIP7702Delegation(provider, addr)) {
+      let hasDelegation = false;
+      try {
+        hasDelegation = await hasEIP7702Delegation(provider, addr);
+      } catch (_) { /* getCode may fail on some RPCs */ }
+
+      if (hasDelegation) {
         const pk = prompt(
           'Your wallet has EIP-7702 delegation active, which routes transactions through a proxy.\n\n' +
           'To anchor directly to our contract, enter your Sepolia private key (stored in session only, never sent to any server):'
@@ -338,6 +343,11 @@ async function anchrAnchor(record) {
       return { tx: receipt.hash, chain: 'sepolia', block: Number(receipt.blockNumber), mock: false };
     } catch (err) {
       console.warn('MetaMask anchor failed:', err.message);
+      // If gas estimation failed, the root may already be anchored or
+      // the RPC returned a parse error — fall through to mock with a warning
+      if (err.message && err.message.includes('missing revert data')) {
+        console.warn('Gas estimation failed — likely a MetaMask/RPC issue. Saving locally.');
+      }
     }
   }
 
