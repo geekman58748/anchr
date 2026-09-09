@@ -618,6 +618,7 @@ async function anchrLookupByAddress(address) {
  * then falls back to the master secret.
  */
 async function anchrSimpleLogin(totpCode) {
+  console.log('[anchr] ancrSimpleLogin starting, code:', totpCode);
   if (typeof ethers === 'undefined') throw new Error('ethers.js not loaded');
   if (!window.ethereum) throw new Error('No wallet connected');
 
@@ -625,26 +626,35 @@ async function anchrSimpleLogin(totpCode) {
   await provider.send('eth_requestAccounts', []);
   const signer = await provider.getSigner();
   const addr = await signer.getAddress();
+  console.log('[anchr] Wallet address:', addr);
 
   // Collect all available TOTP secrets (master + per-doc)
   const masterSecretB32 = localStorage.getItem('anchr-totp-secret');
+  console.log('[anchr] Master TOTP secret in localStorage:', masterSecretB32 ? masterSecretB32.slice(0, 8) + '...' : 'NONE');
   const masterSecretBytes = masterSecretB32 ? base32Decode(masterSecretB32) : null;
 
   // Verify the code against the master secret first
   if (masterSecretBytes) {
     const valid = await verifyTotp(masterSecretBytes, totpCode);
+    console.log('[anchr] Master TOTP verification:', valid ? 'PASS' : 'FAIL');
     if (!valid) throw new Error('Invalid code. Check your authenticator app.');
+  } else {
+    console.warn('[anchr] No master TOTP secret — skipping verification, will try per-doc secrets');
   }
 
   // Get all document IDs from chain
   const vault = getVaultContract(provider);
+  console.log('[anchr] Vault contract:', VAULT_ADDRESS);
   const docIds = await vault.getDocumentsBySender(addr);
+  console.log('[anchr] getDocumentsBySender returned:', docIds.length, 'items');
 
   const results = [];
   const skipped = [];
+  console.log('[anchr] Processing', docIds.length, 'doc IDs...');
   for (const docId of docIds) {
-    if (docId === ethers.ZeroHash) continue;
+    if (docId === ethers.ZeroHash) { console.log('[anchr] Skipping zero hash'); continue; }
     try {
+      console.log('[anchr] Fetching doc', docId.toString().slice(0, 18) + '...');
       const [, , contentHex, keyHex, doc] = await vault.fetch(docId);
       if (doc.shredded) { skipped.push({ name: doc.name, reason: 'shredded' }); continue; }
 
@@ -709,6 +719,8 @@ async function anchrSimpleLogin(totpCode) {
 
   // Attach skip info so caller can show it
   results._skipped = skipped;
+  console.log('[anchr] Login complete:', results.length, 'decrypted,', skipped.length, 'skipped');
+  if (skipped.length > 0) console.log('[anchr] Skipped:', skipped.map(s => s.name + ' (' + s.reason + ')'));
   return results;
 }
 
