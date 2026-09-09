@@ -338,10 +338,18 @@
     try {
       const results = await anchrSimpleLogin(code);
       document.getElementById('loginOverlay').classList.remove('active');
-      if (results.length === 0) {
-        alert('No documents found on chain for this wallet.');
+      const skipped = results._skipped || [];
+      if (results.length === 0 && skipped.length > 0) {
+        const reasons = skipped.map(s => '  \u2022 ' + s.name + ' \u2014 ' + s.reason).join('\n');
+        alert('Found ' + skipped.length + ' document(s) on chain, but none could be decrypted:\n\n' + reasons + '\n\nTip: Make sure you\'re using the same device/browser where you originally sealed the document.');
+      } else if (results.length === 0) {
+        alert('No documents found on chain for this wallet.\n\nMake sure you connected the same wallet used to seal documents.');
       } else {
-        alert('✓ Unlocked ' + results.length + ' document(s):\n' + results.map(r => '• ' + r.name).join('\n'));
+        let msg = '✓ Unlocked ' + results.length + ' document(s):\n' + results.map(r => '• ' + r.name).join('\n');
+        if (skipped.length > 0) {
+          msg += '\n\n' + skipped.length + ' document(s) skipped (sealed without TOTP key):\n' + skipped.map(s => '  \u2022 ' + s.name).join('\n');
+        }
+        alert(msg);
       }
       await loadDocs();
     } catch (err) {

@@ -604,7 +604,8 @@ async function anchrLookupByAddress(address) {
 }
 
 /* Simple login: enter 6-digit code → fetch ALL documents.
- * One TOTP secret per wallet. One code unlocks everything.
+ * Tries per-document TOTP secrets first (stored during seal),
+ * then falls back to the master secret.
  */
 async function anchrSimpleLogin(totpCode) {
   if (typeof ethers === 'undefined') throw new Error('ethers.js not loaded');
@@ -615,29 +616,62 @@ async function anchrSimpleLogin(totpCode) {
   const signer = await provider.getSigner();
   const addr = await signer.getAddress();
 
-  // Get master TOTP secret from local storage
-  const masterSecret = localStorage.getItem('anchr-totp-secret');
-  if (!masterSecret) throw new Error('No TOTP secret found on this device. Use the original device to get it.');
+  // Collect all available TOTP secrets (master + per-doc)
+  const masterSecretB32 = localStorage.getItem('anchr-totp-secret');
+  const masterSecretBytes = masterSecretB32 ? base32Decode(masterSecretB32) : null;
 
-  // Verify the code
-  const secretBytes = base32Decode(masterSecret);
-  const valid = await verifyTotp(secretBytes, totpCode);
-  if (!valid) throw new Error('Invalid code. Check your authenticator app.');
+  // Verify the code against the master secret first
+  if (masterSecretBytes) {
+    const valid = await verifyTotp(masterSecretBytes, totpCode);
+    if (!valid) throw new Error('Invalid code. Check your authenticator app.');
+  }
 
   // Get all document IDs from chain
   const vault = getVaultContract(provider);
   const docIds = await vault.getDocumentsBySender(addr);
 
   const results = [];
+  const skipped = [];
   for (const docId of docIds) {
     if (docId === ethers.ZeroHash) continue;
     try {
       const [, , contentHex, keyHex, doc] = await vault.fetch(docId);
-      if (doc.shredded) continue;
+      if (doc.shredded) { skipped.push({ name: doc.name, reason: 'shredded' }); continue; }
 
-      // Unwrap the AES key
+      // Skip docs with empty wrapped key (sealed without TOTP protection)
+      if (!keyHex || keyHex === '0x' || hexToBytes(keyHex).length < 12) {
+        skipped.push({ name: doc.name, reason: 'no TOTP key — sealed before TOTP was enabled' });
+        console.warn('Skipping doc', docId.toString().slice(0, 18), '— no wrapped key (pre-TOTP seal)');
+        continue;
+      }
+
+      // Build list of TOTP secrets to try for this doc
+      const secretsToTry = [];
+      const perDocSecretB32 = localStorage.getItem('anchr-totp-' + docId);
+      if (perDocSecretB32) {
+        secretsToTry.push({ b32: perDocSecretB32, bytes: base32Decode(perDocSecretB32) });
+      }
+      if (masterSecretBytes) {
+        secretsToTry.push({ b32: masterSecretB32, bytes: masterSecretBytes });
+      }
+
+      // Try each secret to unwrap the key
+      let aesKeyRaw = null;
+      let matchedSecretB32 = null;
       const wrappedKeyBytes = hexToBytes(keyHex);
-      const aesKeyRaw = await unwrapKey(wrappedKeyBytes, secretBytes);
+      for (const { b32, bytes } of secretsToTry) {
+        try {
+          aesKeyRaw = await unwrapKey(wrappedKeyBytes, bytes);
+          matchedSecretB32 = b32;
+          break;
+        } catch (_) { /* wrong secret, try next */ }
+      }
+
+      if (!aesKeyRaw) {
+        skipped.push({ name: doc.name, reason: 'TOTP key mismatch — sealed with a different authenticator' });
+        console.warn('Cannot unwrap doc', docId.toString().slice(0, 18), '— no matching TOTP secret');
+        continue;
+      }
 
       // Store locally
       await dbPut('keys', { docId, key: aesKeyRaw.buffer });
@@ -653,15 +687,18 @@ async function anchrSimpleLogin(totpCode) {
         shredded: false,
         vaultDocId: docId,
         vaultSender: doc.sender,
-        totpSecret: masterSecret,
+        totpSecret: matchedSecretB32,
       });
 
       results.push({ id: docId, name: doc.name, size: Number(doc.size) });
     } catch (err) {
-      console.warn('Failed to import doc', docId, err.message);
+      skipped.push({ name: docId.toString().slice(0, 18), reason: err.message });
+      console.warn('Failed to import doc', docId.toString().slice(0, 18), err.message);
     }
   }
 
+  // Attach skip info so caller can show it
+  results._skipped = skipped;
   return results;
 }
 
@@ -764,6 +801,12 @@ async function anchrSealOnChain(record, onStage) {
   record.vaultSender = sender;
   record.totpSecret = totpSecretBase32; // save locally for convenience
   await dbPut('docs', record);
+
+  // Also store per-document TOTP secret so ancrSimpleLogin can unwrap this doc
+  // even if a different TOTP secret was used for a later seal.
+  if (docId) {
+    localStorage.setItem('anchr-totp-' + docId, totpSecretBase32);
+  }
 
   // Build otpauth:// URI for QR code
   const totpUri = `otpauth://totp/Anchr:${sender.slice(0, 10)}?secret=${totpSecretBase32}&issuer=Anchr&algorithm=SHA1&digits=6&period=${TOTP_PERIOD}`;
